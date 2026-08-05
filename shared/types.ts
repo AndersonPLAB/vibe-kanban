@@ -154,7 +154,14 @@ export type UpdateScratch = { payload: ScratchPayload, };
 
 export type Workspace = { id: string, task_id: string | null, container_ref: string | null, branch: string, setup_completed_at: string | null, created_at: string, updated_at: string, archived: boolean, pinned: boolean, name: string | null, worktree_deleted: boolean, };
 
-export type WorkspaceWithStatus = { is_running: boolean, is_errored: boolean, id: string, task_id: string | null, container_ref: string | null, branch: string, setup_completed_at: string | null, created_at: string, updated_at: string, archived: boolean, pinned: boolean, name: string | null, worktree_deleted: boolean, };
+export type WorkspaceWithStatus = { is_running: boolean, is_errored: boolean, 
+/**
+ * True when no coding agent has ever been dispatched for this workspace,
+ * i.e. it was created (POST /workspaces) but never started. Setup/cleanup
+ * scripts are deliberately excluded: a workspace whose setup ran but whose
+ * agent never got dispatched still has no agent work to show.
+ */
+has_never_run: boolean, id: string, task_id: string | null, container_ref: string | null, branch: string, setup_completed_at: string | null, created_at: string, updated_at: string, archived: boolean, pinned: boolean, name: string | null, worktree_deleted: boolean, };
 
 export type Session = { id: string, workspace_id: string, name: string | null, executor: string | null, agent_working_dir: string | null, created_at: string, updated_at: string, };
 
@@ -350,7 +357,13 @@ export type ListRelayPairedHostsResponse = { hosts: Array<RelayPairedHost>, };
 
 export type RemoveRelayPairedHostResponse = { removed: boolean, };
 
-export type CreateWorkspaceApiRequest = { name: string | null, };
+export type CreateWorkspaceApiRequest = { name: string | null, 
+/**
+ * At least one repository is required. A workspace with no repository has
+ * no worktree, which makes git status, the diff stream and agent dispatch
+ * all fail — so the repos are attached as part of creation.
+ */
+repos: Array<WorkspaceRepoInput>, };
 
 export type LinkedIssueInfo = { remote_project_id: string, issue_id: string, };
 
