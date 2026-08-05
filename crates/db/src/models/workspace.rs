@@ -60,6 +60,11 @@ pub struct WorkspaceWithStatus {
     pub workspace: Workspace,
     pub is_running: bool,
     pub is_errored: bool,
+    /// True when no coding agent has ever been dispatched for this workspace,
+    /// i.e. it was created (POST /workspaces) but never started. Setup/cleanup
+    /// scripts are deliberately excluded: a workspace whose setup ran but whose
+    /// agent never got dispatched still has no agent work to show.
+    pub has_never_run: bool,
 }
 
 impl std::ops::Deref for WorkspaceWithStatus {
@@ -533,7 +538,16 @@ impl Workspace {
                       AND ep.run_reason IN ('setupscript','cleanupscript','codingagent')
                     ORDER BY ep.created_at DESC
                     LIMIT 1
-                ) IN ('failed','killed') THEN 1 ELSE 0 END AS "is_errored!: i64"
+                ) IN ('failed','killed') THEN 1 ELSE 0 END AS "is_errored!: i64",
+
+                CASE WHEN NOT EXISTS (
+                    SELECT 1
+                    FROM sessions s
+                    JOIN execution_processes ep ON ep.session_id = s.id
+                    WHERE s.workspace_id = w.id
+                      AND ep.run_reason = 'codingagent'
+                    LIMIT 1
+                ) THEN 1 ELSE 0 END AS "has_never_run!: i64"
 
             FROM workspaces w
             ORDER BY w.updated_at DESC"#
@@ -559,6 +573,7 @@ impl Workspace {
                 },
                 is_running: rec.is_running != 0,
                 is_errored: rec.is_errored != 0,
+                has_never_run: rec.has_never_run != 0,
             })
             // Apply archived filter if provided
             .filter(|ws| archived.is_none_or(|a| ws.workspace.archived == a))
@@ -627,7 +642,16 @@ impl Workspace {
                       AND ep.run_reason IN ('setupscript','cleanupscript','codingagent')
                     ORDER BY ep.created_at DESC
                     LIMIT 1
-                ) IN ('failed','killed') THEN 1 ELSE 0 END AS "is_errored!: i64"
+                ) IN ('failed','killed') THEN 1 ELSE 0 END AS "is_errored!: i64",
+
+                CASE WHEN NOT EXISTS (
+                    SELECT 1
+                    FROM sessions s
+                    JOIN execution_processes ep ON ep.session_id = s.id
+                    WHERE s.workspace_id = w.id
+                      AND ep.run_reason = 'codingagent'
+                    LIMIT 1
+                ) THEN 1 ELSE 0 END AS "has_never_run!: i64"
 
             FROM workspaces w
             WHERE w.id = $1"#,
@@ -656,6 +680,7 @@ impl Workspace {
             },
             is_running: rec.is_running != 0,
             is_errored: rec.is_errored != 0,
+            has_never_run: rec.has_never_run != 0,
         };
 
         if ws.workspace.name.is_none()
