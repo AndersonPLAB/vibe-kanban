@@ -113,6 +113,24 @@ after the smoke check; check the log.
   backend exits with `Migrate(VersionMismatch(20250617183714))` — an error that points
   at the database, not at line endings. `--check` catches it in milliseconds.
 - **`Recommended executor: CLAUDE_CODE` in the log is informational**, not an error.
+- **A fresh dev env has zero registered repos, and a workspace without a repo is
+  structurally broken.** The seeded `dev_assets` DB registers no repository, and
+  attaching one is what materialises the git worktree (`container_ref`). Until a
+  workspace has ≥1 repo, `git/status`, the diff WS and agent dispatch all fail with
+  `Container(Other(Workspace has no repositories configured))` — a 500 the UI shows as
+  the generic "An internal error occurred". Register a repo before exercising any
+  workspace flow:
+
+  ```bash
+  curl -s -X POST -H "Origin: http://localhost:$FRONTEND_PORT" -H "Content-Type: application/json" \
+    -d '{"path":"/abs/path/to/repo","display_name":"my-repo"}' \
+    http://localhost:$BACKEND_PORT/api/repos
+  ```
+
+  `target_branch` must name a branch that **exists** — `""` is rejected with
+  `Branch '' does not exist in repository`. Resolve it from the repo's
+  `default_target_branch`, else the `is_current` entry of
+  `GET /api/repos/{id}/branches`.
 
 ## Troubleshooting
 
@@ -127,6 +145,9 @@ Errors actually hit on this machine, and what fixed them:
 | Driver hangs, no `==> OPEN` line | Something never printed a port. Read the task log directly; a cold cargo build genuinely takes minutes before any port appears. |
 | `Failed to parse config: unknown variant 'light'` | Harmless. Seed `config.json` uses a lowercase theme the v7 schema rejects; the app falls back to defaults and continues. |
 | Tailwind `content option ... is missing or empty` warning | Harmless; styles render correctly. |
+| UI shows `An internal error occurred` on first prompt; log says `Container(Other(Workspace has no repositories configured))` | The workspace has no repo, so no worktree. Attach one: `POST /api/workspaces/{id}/repos` with `{"repo_id","target_branch"}` (a real branch name). |
+| `Branch '' does not exist in repository '<name>'` | `target_branch` was empty. Use the repo's `default_target_branch`, or the `is_current` branch from `GET /api/repos/{id}/branches`. |
+| `cargo install sqlx-cli` fails: `requires rustc 1.94.0 or newer` | Pin to the version matching the project's sqlx (0.8.6): `cargo install sqlx-cli@0.8.6 --no-default-features --features sqlite,rustls`. |
 
 `dev_assets/` is gitignored and disposable — it is re-seeded from `dev_assets_seed/` on
 start, so deleting it is a safe reset for DB/config weirdness.
