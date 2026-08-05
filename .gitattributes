@@ -1,0 +1,3 @@
+# sqlx checksums migration files byte-for-byte, so a CRLF checkout makes every
+# checksum mismatch and the server exits with Migrate(VersionMismatch(...)).
+*.sql text eol=lf
