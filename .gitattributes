@@ -1,3 +1,7 @@
 # sqlx checksums migration files byte-for-byte, so a CRLF checkout makes every
 # checksum mismatch and the server exits with Migrate(VersionMismatch(...)).
 *.sql text eol=lf
+
+# Bash rejects CRLF scripts with `$'\r': command not found`, and pnpm runs
+# several of these (e.g. local-web:legacy-path-guard) as part of `pnpm run check`.
+*.sh text eol=lf
