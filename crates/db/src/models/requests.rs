@@ -20,6 +20,10 @@ pub struct WorkspaceRepoInput {
 #[derive(Debug, Serialize, Deserialize, TS)]
 pub struct CreateWorkspaceApiRequest {
     pub name: Option<String>,
+    /// At least one repository is required. A workspace with no repository has
+    /// no worktree, which makes git status, the diff stream and agent dispatch
+    /// all fail — so the repos are attached as part of creation.
+    pub repos: Vec<WorkspaceRepoInput>,
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]

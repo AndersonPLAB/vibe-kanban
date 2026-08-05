@@ -4,6 +4,7 @@ use axum::{Json, extract::State, response::Json as ResponseJson};
 use db::models::{
     requests::{
         CreateAndStartWorkspaceRequest, CreateAndStartWorkspaceResponse, CreateWorkspaceApiRequest,
+        WorkspaceRepoInput,
     },
     workspace::{CreateWorkspace, Workspace},
 };
@@ -11,6 +12,7 @@ use deployment::Deployment;
 use services::services::container::ContainerService;
 use utils::response::ApiResponse;
 use uuid::Uuid;
+use workspace_manager::ManagedWorkspace;
 
 use crate::{
     DeploymentImpl,
@@ -47,11 +49,55 @@ pub(crate) async fn create_workspace_record(
     Ok(workspace)
 }
 
+/// Creates the workspace record and attaches its repositories, which is what
+/// materialises the worktree. Both creation routes go through here so neither can
+/// produce a repo-less workspace: without a repository every downstream consumer
+/// (git status, diff stream, agent dispatch) fails with
+/// "Workspace has no repositories configured".
+async fn create_workspace_with_repos(
+    deployment: &DeploymentImpl,
+    name: Option<String>,
+    repos: &[WorkspaceRepoInput],
+) -> Result<ManagedWorkspace, ApiError> {
+    if repos.is_empty() {
+        return Err(ApiError::BadRequest(
+            "At least one repository is required".to_string(),
+        ));
+    }
+
+    let mut managed_workspace = deployment
+        .workspace_manager()
+        .load_managed_workspace(create_workspace_record(deployment, name).await?)
+        .await?;
+
+    for repo in repos {
+        managed_workspace
+            .add_repository(repo, deployment.git())
+            .await
+            .map_err(ApiError::from)?;
+    }
+
+    Ok(managed_workspace)
+}
+
 pub async fn create_workspace(
     State(deployment): State<DeploymentImpl>,
     Json(payload): Json<CreateWorkspaceApiRequest>,
 ) -> Result<ResponseJson<ApiResponse<Workspace>>, ApiError> {
-    let workspace = create_workspace_record(&deployment, payload.name).await?;
+    let managed_workspace =
+        create_workspace_with_repos(&deployment, payload.name, &payload.repos).await?;
+
+    // No coding agent is dispatched here, but the container/worktree must exist
+    // so the workspace is immediately usable (git status, opening it, later
+    // dispatch). Mirrors what add_workspace_repo does.
+    deployment
+        .container()
+        .ensure_container_exists(&managed_workspace.workspace)
+        .await?;
+
+    let workspace = Workspace::find_by_id(&deployment.db().pool, managed_workspace.workspace.id)
+        .await?
+        .ok_or(db::models::workspace::WorkspaceError::WorkspaceNotFound)?;
 
     deployment
         .track_if_analytics_allowed(
@@ -228,23 +274,7 @@ pub async fn create_and_start_workspace(
         )
     })?;
 
-    if repos.is_empty() {
-        return Err(ApiError::BadRequest(
-            "At least one repository is required".to_string(),
-        ));
-    }
-
-    let mut managed_workspace = deployment
-        .workspace_manager()
-        .load_managed_workspace(create_workspace_record(&deployment, name).await?)
-        .await?;
-
-    for repo in &repos {
-        managed_workspace
-            .add_repository(repo, deployment.git())
-            .await
-            .map_err(ApiError::from)?;
-    }
+    let mut managed_workspace = create_workspace_with_repos(&deployment, name, &repos).await?;
 
     if let Some(ids) = &attachment_ids {
         managed_workspace.associate_attachments(ids).await?;
