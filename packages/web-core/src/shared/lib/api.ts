@@ -76,6 +76,7 @@ import {
   ContinueRebaseRequest,
   Session,
   Workspace,
+  CreateWorkspaceApiRequest,
   StartReviewRequest,
   ReviewError,
   GitRemote,
@@ -406,6 +407,19 @@ export const workspacesApi = {
       body: JSON.stringify(data),
     });
     return handleApiResponse<CreateAndStartWorkspaceResponse>(response);
+  },
+
+  /**
+   * Create a workspace without dispatching a coding agent. The workspace gets a
+   * branch and a DB record only, so it shows up as queued work. The agent is
+   * dispatched later, when a prompt is entered in the workspace itself.
+   */
+  create: async (data: CreateWorkspaceApiRequest): Promise<Workspace> => {
+    const response = await makeRequest('/api/workspaces', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<Workspace>(response);
   },
 
   getAll: async (taskId: string): Promise<Workspace[]> => {

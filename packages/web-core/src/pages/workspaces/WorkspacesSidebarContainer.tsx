@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
+import { useAppNavigation } from '@/shared/hooks/useAppNavigation';
 import { useUserContext } from '@/shared/hooks/useUserContext';
 import { useScratch } from '@/shared/hooks/useScratch';
 import { useAllOrganizationProjects } from '@/shared/hooks/useAllOrganizationProjects';
@@ -48,6 +49,7 @@ import {
   FunnelIcon,
   FolderIcon,
   GitPullRequestIcon,
+  KanbanIcon,
   SortAscendingIcon,
   SortDescendingIcon,
   XIcon,
@@ -282,6 +284,8 @@ export function WorkspacesSidebarContainer({
   const { t } = useTranslation('common');
   const sortDialogTitle = t('kanban.workspaceSidebar.sortButtonTitle');
   const filterDialogTitle = t('kanban.workspaceSidebar.filterButtonTitle');
+  const boardTitle = t('workspacesBoard.openBoard');
+  const appNavigation = useAppNavigation();
 
   const layoutMode: WorkspaceLayoutMode = isAccordionLayout
     ? 'accordion'
@@ -635,6 +639,14 @@ export function WorkspacesSidebarContainer({
             title={filterDialogTitle}
             className="!h-cta !px-half !py-0"
             iconClassName={cn('size-icon-lg', hasActiveFilters && 'text-brand')}
+          />
+          <IconButton
+            icon={KanbanIcon}
+            onClick={() => appNavigation.goToWorkspacesBoard()}
+            aria-label={boardTitle}
+            title={boardTitle}
+            className="!h-cta !px-half !py-0"
+            iconClassName="size-icon-lg"
           />
         </div>
       </div>

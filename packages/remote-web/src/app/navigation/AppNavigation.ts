@@ -143,6 +143,10 @@ function destinationToRemoteTarget(
         } as const;
       }
       return { to: "/" } as const;
+    case "workspaces-board":
+      // The local-first workspaces board reads local SQLite; it does not exist
+      // in the remote app. Fall back to the workspaces list.
+      return { to: "/" } as const;
     case "workspace":
       if (effectiveHostId) {
         return {
@@ -238,6 +242,8 @@ export function createRemoteHostAppNavigation(hostId: string): AppNavigation {
       navigateTo({ kind: "workspaces", hostId }, transition),
     goToWorkspacesCreate: (transition) =>
       navigateTo({ kind: "workspaces-create", hostId }, transition),
+    goToWorkspacesBoard: (transition) =>
+      navigateTo({ kind: "workspaces-board" }, transition),
     goToWorkspace: (workspaceId, transition) =>
       navigateTo({ kind: "workspace", hostId, workspaceId }, transition),
     goToWorkspaceVsCode: (workspaceId, transition) =>
@@ -310,6 +316,8 @@ function createRemoteFallbackAppNavigation(): AppNavigation {
       navigateTo({ kind: "workspaces" }, transition),
     goToWorkspacesCreate: (transition) =>
       navigateTo({ kind: "workspaces-create" }, transition),
+    goToWorkspacesBoard: (transition) =>
+      navigateTo({ kind: "workspaces-board" }, transition),
     goToWorkspace: (workspaceId, transition) =>
       navigateTo({ kind: "workspace", workspaceId }, transition),
     goToWorkspaceVsCode: (workspaceId, transition) =>

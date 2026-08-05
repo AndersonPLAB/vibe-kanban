@@ -23,6 +23,9 @@ export interface SidebarWorkspace {
   linesAdded?: number;
   linesRemoved?: number;
   isRunning?: boolean;
+  isErrored?: boolean;
+  /** No coding agent has ever been dispatched — the workspace is queued work. */
+  hasNeverRun?: boolean;
   isPinned?: boolean;
   isArchived?: boolean;
   hasPendingApproval?: boolean;
@@ -69,6 +72,8 @@ function toSidebarWorkspace(
     linesRemoved: summary?.lines_removed ?? undefined,
     // Real data from stream
     isRunning: ws.is_running,
+    isErrored: ws.is_errored,
+    hasNeverRun: ws.has_never_run,
     isPinned: ws.pinned,
     isArchived: ws.archived,
     // Additional data from summary

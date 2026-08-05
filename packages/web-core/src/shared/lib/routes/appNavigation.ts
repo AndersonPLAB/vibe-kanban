@@ -4,6 +4,7 @@ export type AppDestination =
   | { kind: 'onboarding-sign-in' }
   | { kind: 'workspaces'; hostId?: string }
   | { kind: 'workspaces-create'; hostId?: string }
+  | { kind: 'workspaces-board' }
   | { kind: 'workspace'; workspaceId: string; hostId?: string }
   | { kind: 'workspace-vscode'; workspaceId: string; hostId?: string }
   | { kind: 'export' }
@@ -45,6 +46,7 @@ export interface AppNavigation {
   goToOnboardingSignIn(transition?: NavigationTransition): void;
   goToWorkspaces(transition?: NavigationTransition): void;
   goToWorkspacesCreate(transition?: NavigationTransition): void;
+  goToWorkspacesBoard(transition?: NavigationTransition): void;
   goToWorkspace(workspaceId: string, transition?: NavigationTransition): void;
   goToWorkspaceVsCode(
     workspaceId: string,

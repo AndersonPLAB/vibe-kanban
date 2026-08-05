@@ -50,6 +50,8 @@ function resolveLocalDestinationFromPath(path: string): AppDestination | null {
     }
     case '/_app/workspaces_/create':
       return { kind: 'workspaces-create' };
+    case '/_app/workspaces_/board':
+      return { kind: 'workspaces-board' };
     case '/_app/hosts/$hostId/workspaces_/create': {
       const hostId = getPathParam(routeParams, 'hostId');
       return hostId ? { kind: 'workspaces-create', hostId } : null;
@@ -203,6 +205,9 @@ function destinationToLocalTarget(
         } as const;
       }
       return { to: '/workspaces/create' } as const;
+    case 'workspaces-board':
+      // Board reads the local SQLite only, so it has no host-scoped variant.
+      return { to: '/workspaces/board' } as const;
     case 'workspace':
       if (effectiveHostId) {
         return {
@@ -336,6 +341,8 @@ export function createLocalAppNavigation(): AppNavigation {
       navigateTo({ kind: 'workspaces' }, transition),
     goToWorkspacesCreate: (transition) =>
       navigateTo({ kind: 'workspaces-create' }, transition),
+    goToWorkspacesBoard: (transition) =>
+      navigateTo({ kind: 'workspaces-board' }, transition),
     goToWorkspace: (workspaceId, transition) =>
       navigateTo({ kind: 'workspace', workspaceId }, transition),
     goToWorkspaceVsCode: (workspaceId, transition) =>

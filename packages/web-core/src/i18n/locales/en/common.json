@@ -551,5 +551,19 @@
     "submitting": "Submitting answers...",
     "answeredCount": "Answered {{count}} question",
     "answeredCount_other": "Answered {{count}} questions"
+  },
+  "workspacesBoard": {
+    "columns": {
+      "queued": "Queued",
+      "running": "Running",
+      "errored": "Errored",
+      "done": "Done",
+      "archived": "Archived"
+    },
+    "enqueue": "Queue a workspace without starting it",
+    "empty": "Nothing here",
+    "openBoard": "Workspaces board",
+    "untitled": "Not started yet",
+    "selectRepo": "Pick a repository to queue into"
   }
 }
