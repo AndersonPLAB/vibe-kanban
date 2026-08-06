@@ -67,10 +67,15 @@ ModelSelectorContainer.tsx  deg 39  → ModelSelectorPopover.tsx (packages/ui)
 `sessions/mod.rs` (`follow_up`).
 
 **i18n** — comunidade 1: `i18n/config.ts` + `languages.ts` + `index.ts`, plugado em
-`ConfigProvider` e `GeneralSettingsSection`. Locales presentes nesta branch:
-`en, es, fr, ja, ko, zh-Hans, zh-Hant`. **Não há `pt-BR` aqui** — se existe, está em
-outra branch/worktree; adicionar significa mexer em `SUPPORTED_I18N_CODES`,
-`getEndonym()` e uma pasta nova em `i18n/locales/`.
+`ConfigProvider` e `GeneralSettingsSection`. Locales: `en, es, fr, ja, ko, zh-Hans,
+zh-Hant, pt-BR`. Registrar idioma são **quatro** pontos, não três: o dropdown nasce do
+enum Rust `UiLanguage` (`config/versions/v6.rs` + `pnpm generate-types`), além de
+`SUPPORTED_I18N_CODES`, `getEndonym()` e a pasta em `locales/`. **Regra da casa:**
+string nova entra manualmente em `en/*.json` (não há extração automática); locale
+desatualizado cai em fallback inglês (`fallbackLng: en`) e a bateria acusa nos dois
+sentidos — chave morta via `check-unused-i18n-keys.mjs` (`pnpm lint`), hardcode via
+`i18next/no-literal-string` (`check-i18n.sh`). Namespaces 100% sunset (`organization`,
+`projects`) ficam em inglês de propósito.
 
 ## Zona do sunset — não usar
 

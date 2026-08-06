@@ -39,6 +39,11 @@ import zhHantSettings from './locales/zh-Hant/settings.json';
 import zhHantProjects from './locales/zh-Hant/projects.json';
 import zhHantTasks from './locales/zh-Hant/tasks.json';
 import zhHantOrganization from './locales/zh-Hant/organization.json';
+import ptBRCommon from './locales/pt-BR/common.json';
+import ptBRSettings from './locales/pt-BR/settings.json';
+import ptBRProjects from './locales/pt-BR/projects.json';
+import ptBRTasks from './locales/pt-BR/tasks.json';
+import ptBROrganization from './locales/pt-BR/organization.json';
 
 const resources = {
   en: {
@@ -90,6 +95,13 @@ const resources = {
     tasks: zhHantTasks,
     organization: zhHantOrganization,
   },
+  'pt-BR': {
+    common: ptBRCommon,
+    settings: ptBRSettings,
+    projects: ptBRProjects,
+    tasks: ptBRTasks,
+    organization: ptBROrganization,
+  },
 };
 
 i18n
@@ -102,12 +114,14 @@ i18n
       'zh-HK': ['zh-Hant'],
       'zh-MO': ['zh-Hant'],
       zh: ['zh-Hans'], // Map generic Chinese to Simplified Chinese
+      pt: ['pt-BR'],
+      'pt-PT': ['pt-BR'],
       default: ['en'],
     },
     defaultNS: 'common',
     debug: import.meta.env.DEV,
-    // Include 'zh' + Traditional Chinese locales for browser detection
-    supportedLngs: [...SUPPORTED_I18N_CODES, 'zh', 'zh-TW', 'zh-HK', 'zh-MO'],
+    // Include 'zh' + Traditional Chinese locales and 'pt' + Portuguese (Portugal) for browser detection
+    supportedLngs: [...SUPPORTED_I18N_CODES, 'zh', 'zh-TW', 'zh-HK', 'zh-MO', 'pt', 'pt-PT'],
     nonExplicitSupportedLngs: true, // Accept zh -> zh-Hans mapping
     load: 'currentOnly', // Load exact language code
 
