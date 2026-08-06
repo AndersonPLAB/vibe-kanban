@@ -269,19 +269,24 @@ fn default_discovered_options() -> crate::executor_discovery::ExecutorDiscovered
         model_selector::{ModelInfo, ModelSelectorConfig, ReasoningOption},
     };
 
-    let effort_options =
+    let full_effort =
         ReasoningOption::from_names(["low", "medium", "high", "xhigh", "max"].map(String::from));
-
-    let supports_effort = |id: &str| -> bool { id.contains("opus") || id.contains("sonnet") };
+    // O binário (2.1.223) responde `false` a `xhigh_effort`/`max_effort` para
+    // `claude-haiku-4-5`; a família 5 é liberada por capability.
+    let haiku_effort = ReasoningOption::from_names(["low", "medium", "high"].map(String::from));
 
     // zona de envelhecimento — revisar no merge mensal
     let static_models = [
-        ("fable", "fable → Fable 5"),
-        ("fable[1m]", "fable[1m] → Fable 5 (1M context)"),
-        ("opus", "opus → Opus 5"),
-        ("opus[1m]", "opus[1m] → Opus 5 (1M context)"),
-        ("sonnet", "sonnet → Sonnet 5"),
-        ("haiku", "haiku → Haiku 4.5"),
+        ("fable", "fable → Fable 5", &full_effort),
+        (
+            "fable[1m]",
+            "fable[1m] → Fable 5 (1M context)",
+            &full_effort,
+        ),
+        ("opus", "opus → Opus 5", &full_effort),
+        ("opus[1m]", "opus[1m] → Opus 5 (1M context)", &full_effort),
+        ("sonnet", "sonnet → Sonnet 5", &full_effort),
+        ("haiku", "haiku → Haiku 4.5", &haiku_effort),
     ];
 
     ExecutorDiscoveredOptions {
@@ -289,15 +294,11 @@ fn default_discovered_options() -> crate::executor_discovery::ExecutorDiscovered
             providers: vec![],
             models: static_models
                 .into_iter()
-                .map(|(id, name)| ModelInfo {
+                .map(|(id, name, effort)| ModelInfo {
                     id: id.to_string(),
                     name: name.to_string(),
                     provider_id: None,
-                    reasoning_options: if supports_effort(id) {
-                        effort_options.clone()
-                    } else {
-                        vec![]
-                    },
+                    reasoning_options: effort.clone(),
                 })
                 .collect(),
             default_model: Some("opus".to_string()),
@@ -2947,6 +2948,23 @@ mod tests {
 
         let ids: Vec<String> = merged.iter().map(|m| m.id.clone()).collect();
         assert_eq!(ids, static_ids);
+    }
+
+    #[test]
+    fn haiku_is_the_only_model_without_xhigh_and_max() {
+        for model in default_discovered_options().model_selector.models {
+            let efforts: Vec<&str> = model
+                .reasoning_options
+                .iter()
+                .map(|o| o.id.as_str())
+                .collect();
+            let expected: &[&str] = if model.id == "haiku" {
+                &["low", "medium", "high"]
+            } else {
+                &["low", "medium", "high", "xhigh", "max"]
+            };
+            assert_eq!(efforts, expected, "effort matrix for {}", model.id);
+        }
     }
 
     #[test]

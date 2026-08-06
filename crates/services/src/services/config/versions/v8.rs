@@ -68,6 +68,10 @@ pub struct Config {
     pub relay_enabled: bool,
     #[serde(default)]
     pub host_nickname: Option<String>,
+    /// Preferred reasoning effort, applied to any model that offers it.
+    /// `None` keeps whatever the model reports as its own default.
+    #[serde(default)]
+    pub default_reasoning_effort: Option<String>,
 }
 
 impl Config {
@@ -99,6 +103,7 @@ impl Config {
             send_message_shortcut: SendMessageShortcut::default(),
             relay_enabled: true,
             host_nickname: None,
+            default_reasoning_effort: None,
         }
     }
 
@@ -155,6 +160,7 @@ impl Default for Config {
             send_message_shortcut: SendMessageShortcut::default(),
             relay_enabled: true,
             host_nickname: None,
+            default_reasoning_effort: None,
         }
     }
 }

@@ -248,6 +248,34 @@ export function GeneralSettingsSection() {
     label: toPrettyCase(sound),
   }));
 
+  // '' means "leave it to the model's own default"
+  const reasoningEffortOptions = [
+    {
+      value: '',
+      label: t('settings.general.taskExecution.reasoningEffort.modelDefault'),
+    },
+    {
+      value: 'low',
+      label: t('settings.general.taskExecution.reasoningEffort.low'),
+    },
+    {
+      value: 'medium',
+      label: t('settings.general.taskExecution.reasoningEffort.medium'),
+    },
+    {
+      value: 'high',
+      label: t('settings.general.taskExecution.reasoningEffort.high'),
+    },
+    {
+      value: 'xhigh',
+      label: t('settings.general.taskExecution.reasoningEffort.xhigh'),
+    },
+    {
+      value: 'max',
+      label: t('settings.general.taskExecution.reasoningEffort.max'),
+    },
+  ];
+
   return (
     <>
       {/* Status messages */}
@@ -522,6 +550,21 @@ export function GeneralSettingsSection() {
               </button>
             ) : null}
           </div>
+        </SettingsField>
+
+        <SettingsField
+          label={t('settings.general.taskExecution.reasoningEffort.label')}
+          description={t(
+            'settings.general.taskExecution.reasoningEffort.helper'
+          )}
+        >
+          <SettingsSelect
+            value={draft?.default_reasoning_effort ?? ''}
+            options={reasoningEffortOptions}
+            onChange={(value) =>
+              updateDraft({ default_reasoning_effort: value || null })
+            }
+          />
         </SettingsField>
       </SettingsCard>
 

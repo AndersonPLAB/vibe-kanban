@@ -76,7 +76,17 @@
           "helper": "Escolha a configuração de agente usada por padrão ao criar um workspace."
         },
         "variant": "DEFAULT",
-        "defaultLabel": "Padrão"
+        "defaultLabel": "Padrão",
+        "reasoningEffort": {
+          "label": "Esforço de raciocínio padrão",
+          "helper": "Vem pré-selecionado em todo modelo que aceita esforço. Quem não aceita fica como está.",
+          "modelDefault": "Padrão do modelo",
+          "low": "Baixo",
+          "medium": "Médio",
+          "high": "Alto",
+          "xhigh": "Extra alto",
+          "max": "Máximo"
+        }
       },
       "editor": {
         "title": "Editor",

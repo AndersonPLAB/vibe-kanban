@@ -75,7 +75,12 @@ export function ModelSelectorContainer({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedProviderId, setExpandedProviderId] = useState('');
-  const { profiles, setProfiles, reloadSystem } = useUserSystem();
+  const {
+    config: userConfig,
+    profiles,
+    setProfiles,
+    reloadSystem,
+  } = useUserSystem();
   const defaultLabel = t('modelSelector.default');
   const loadingLabel = t('states.loading');
 
@@ -216,7 +221,10 @@ export function ModelSelectorContainer({
     executorConfig?.reasoning_id ??
     presetReasoningId ??
     recentReasoningId ??
-    resolveDefaultReasoningId(selectedModel?.reasoning_options ?? []);
+    resolveDefaultReasoningId(
+      selectedModel?.reasoning_options ?? [],
+      userConfig?.default_reasoning_effort
+    );
 
   const defaultAgentId =
     config?.agents.find((entry) => entry.is_default)?.id ?? null;
