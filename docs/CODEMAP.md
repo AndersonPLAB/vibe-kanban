@@ -19,22 +19,10 @@ Regenerar: `/graphify` (escopo: crates + packages, sem imagens/.mdx/.wav).
 
 ## Bairros
 
-| Bairro | Onde | Porta de entrada |
-|---|---|---|
-| Board (nosso) | `packages/web-core/src/features/kanban/ui/` | `WorkspacesBoardContainer.tsx` |
-| Rotas do app | `packages/local-web/src/routes/` | `_app.workspaces_.board.tsx`, `routeTree.gen.ts` |
-| Biblioteca de UI | `packages/ui/src/components/` | `KanbanBoard.tsx`, `Button.tsx`, `cn()` |
-| Shell compartilhado | `packages/web-core/src/shared/` | `lib/api.ts`, `components/ui-new/containers/` |
-| Config + i18n | `packages/web-core/src/i18n/`, `ConfigProvider.tsx` | `config.ts`, `languages.ts` |
-| API HTTP | `crates/server/src/routes/` | `workspaces/{create,git,pr,attachments,integration}.rs`, `sessions/mod.rs` |
-| Agentes de código | `crates/executors/src/` | `executors/mod.rs`, `command.rs`, `profile.rs`, `model_selector.rs` |
-| Git | `crates/git/src/lib.rs` | `GitService` |
-| Worktrees/workspaces | `crates/workspace-manager/`, `crates/worktree-manager/` | `worktree_manager.rs` |
-| Persistência | `crates/db/src/models/`, `crates/db/migrations/` | `models/*.rs` (SQLx, checksum de bytes) |
-| Serviços de fundo | `crates/services/src/services/` | `filesystem_watcher.rs`, `pr_monitor`, notificações |
-| Tipos compartilhados | `crates/api-types/`, `shared/types.ts` | gerados por ts-rs — não editar `shared/` |
-| MCP | `crates/mcp/src/task_server/` | adapters em `executors/src/mcp_config.rs` |
-| Dev/serviço | `.claude/skills/run-vibe-kanban/` | `SKILL.md`, `driver.mjs`, `open.mjs` |
+- **Frontend** — rota `packages/local-web/src/routes/` → container `packages/web-core/src/{features,pages,shared}/` → primitivo `packages/ui/src/components/` (`KanbanBoard.tsx`, `cn()`). Board em `features/kanban/ui/WorkspacesBoardContainer.tsx`; HTTP em `shared/lib/api.ts`; config e idioma em `i18n/` + `ConfigProvider.tsx`.
+- **Backend** — `crates/server/src/routes/` (`workspaces/{create,git,pr,attachments,integration}.rs`, `sessions/mod.rs`) → `crates/services/src/services/` (watcher, pr_monitor, notificações), `crates/db/` (models SQLx + migrations com checksum de bytes), `crates/git` (`GitService`), `crates/{workspace,worktree}-manager`.
+- **Agentes** — `crates/executors/src/`: `executors/mod.rs` (spawn), `command.rs`, `profile.rs`, `model_selector.rs`, `mcp_config.rs`; servidor MCP em `crates/mcp/src/task_server/`.
+- **Contratos e ambiente** — `crates/api-types/` → `shared/types.ts` (gerado por ts-rs, não editar à mão); dev server e serviço em `.claude/skills/run-vibe-kanban/`.
 
 ## Nossos pontos de interesse
 
