@@ -119,22 +119,20 @@ aquilo somava as duas direções mais símbolos externos.)_
 | ESTRUTURAL | 3 | `crates/deployment/src/lib.rs`, `crates/local-deployment/src/lib.rs`, `crates/server/src/error.rs` |
 | TIPO | 2 | só `shared/remote-types` (tipos/consts gerados de `crates/remote`), sem execução |
 | MORTA-DISFARÇADA | 1 | `LocalProjectKanban.tsx` |
-| RUÍDO | 14 | 12 arestas `indirect_call` INFERRED contra `preview-proxy/src/bippy_bundle.js` (minificado) + 2 colisões de nome |
 
-**Os 10 mais acoplados** (arestas → sunset, com veredito):
+Os 14 restantes são ruído: 12 arestas `indirect_call` INFERRED contra o bundle minificado
+`preview-proxy/src/bippy_bundle.js` e 2 colisões de nome (`git2::Remote` vs `crates/remote*`
+— inclusive o "campeão" de acoplamento, `crates/git/src/lib.rs`, que não tem nada de cloud).
+
+**Os 5 mais acoplados de verdade** (arestas → sunset, ruído já descontado):
 
 | # | Arquivo | Veredito |
 |---|---|---|
-| 15 | `crates/git/src/lib.rs` | RUÍDO — é `git2::Remote`/`GitRemote`/`list_remotes`, git remote, nada de cloud. Colisão de nome com `crates/remote*` |
 | 7 | `crates/local-deployment/src/lib.rs` | ESTRUTURAL — `use relay_control, relay_hosts, relay_webrtc, remote_info, RemoteClient` |
 | 7 | `crates/server/src/relay_pairing/server.rs` | REAL — handshake de pareamento de relay |
-| 5 | `crates/git/tests/git_ops_safety.rs` | RUÍDO — mesma colisão, em teste |
 | 5 | `crates/server/src/routes/relay_auth/server.rs` | REAL |
 | 4 | `crates/desktop-bridge/src/ssh_config.rs` | REAL — túnel SSH do desktop bridge |
-| 4 | `crates/server/src/middleware/relay_request_signature.rs` | REAL |
-| 3 | `crates/embedded-ssh/src/handler.rs` | REAL |
 | 3 | `crates/server/src/error.rs` | ESTRUTURAL — mapeia 6+ erros de relay/remote em `ApiError` |
-| 3 | `crates/server/src/routes/relay_auth/client.rs` | REAL |
 
 **O achado que importa:** o cloud não está atrás de um feature flag isolável. `deployment`
 (a camada de trait/DI em que o servidor local inteiro se apoia) carrega campos de
