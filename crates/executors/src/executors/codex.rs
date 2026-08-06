@@ -122,6 +122,10 @@ pub enum ReasoningEffort {
     Medium,
     High,
     Xhigh,
+    Max,
+    /// Maximum reasoning with automatic task delegation. Only the GPT-5.6
+    /// family advertises it; `model/list` is what decides per model.
+    Ultra,
 }
 
 /// Model reasoning summary style
@@ -157,28 +161,62 @@ const MODEL_DISCOVERY_TIMEOUT: std::time::Duration = std::time::Duration::from_s
 /// app-server cannot be reached. Mirrors the catalog shipped with the pinned
 /// CLI version.
 fn default_discovered_options() -> ExecutorDiscoveredOptions {
-    // zona de envelhecimento — revisar no merge mensal
-    let static_models = [
-        ("gpt-5.4", "GPT-5.4", true),
-        ("gpt-5.4-mini", "GPT-5.4 Mini", false),
-        ("gpt-5.3-codex", "GPT-5.3 Codex", false),
-        ("gpt-5.2", "GPT-5.2", false),
-    ];
+    use ReasoningEffort::{High, Low, Max, Medium, Ultra, Xhigh};
 
-    let reasoning_options = ReasoningOption::from_names_with_default(
-        [
-            ReasoningEffort::Low,
-            ReasoningEffort::Medium,
-            ReasoningEffort::High,
-            ReasoningEffort::Xhigh,
-        ]
-        .map(|e| e.as_ref().to_string()),
-        ReasoningEffort::Medium.as_ref(),
-    );
+    // zona de envelhecimento — revisar no merge mensal
+    // (id, display name, supports the `fast` speed tier, effort levels, default effort)
+    let static_models: [(&str, &str, bool, &[ReasoningEffort], ReasoningEffort); 6] = [
+        (
+            "gpt-5.6-sol",
+            "GPT-5.6-Sol",
+            true,
+            &[Low, Medium, High, Xhigh, Max, Ultra],
+            Medium,
+        ),
+        (
+            "gpt-5.6-terra",
+            "GPT-5.6-Terra",
+            true,
+            &[Low, Medium, High, Xhigh, Max, Ultra],
+            Medium,
+        ),
+        (
+            "gpt-5.6-luna",
+            "GPT-5.6-Luna",
+            true,
+            &[Low, Medium, High, Xhigh, Max],
+            Medium,
+        ),
+        (
+            "gpt-5.5",
+            "GPT-5.5",
+            true,
+            &[Low, Medium, High, Xhigh],
+            Xhigh,
+        ),
+        (
+            "gpt-5.4",
+            "GPT-5.4",
+            true,
+            &[Low, Medium, High, Xhigh],
+            Medium,
+        ),
+        (
+            "gpt-5.4-mini",
+            "GPT-5.4-Mini",
+            false,
+            &[Low, Medium, High, Xhigh],
+            Medium,
+        ),
+    ];
 
     let models = static_models
         .into_iter()
-        .flat_map(|(id, name, supports_fast)| {
+        .flat_map(|(id, name, supports_fast, efforts, default_effort)| {
+            let reasoning_options = ReasoningOption::from_names_with_default(
+                efforts.iter().map(|e| e.as_ref().to_string()),
+                default_effort.as_ref(),
+            );
             let base = ModelInfo {
                 id: id.to_string(),
                 name: name.to_string(),
@@ -189,7 +227,7 @@ fn default_discovered_options() -> ExecutorDiscoveredOptions {
                 id: format!("{id}-fast"),
                 name: format!("{name} Fast"),
                 provider_id: None,
-                reasoning_options: reasoning_options.clone(),
+                reasoning_options,
             });
             std::iter::once(base).chain(fast)
         })
@@ -198,7 +236,7 @@ fn default_discovered_options() -> ExecutorDiscoveredOptions {
     ExecutorDiscoveredOptions {
         model_selector: ModelSelectorConfig {
             models,
-            default_model: Some("gpt-5.4".to_string()),
+            default_model: Some("gpt-5.6-sol".to_string()),
             permissions: vec![
                 PermissionPolicy::Auto,
                 PermissionPolicy::Supervised,
@@ -523,7 +561,9 @@ impl StandardCodingAgentExecutor for Codex {
 
 impl Codex {
     pub fn base_command() -> &'static str {
-        "npx -y @openai/codex@0.124.0"
+        // Keep in lockstep with the codex-protocol / codex-app-server-protocol
+        // tags in Cargo.toml — the CLI and the JSON-RPC types ship together.
+        "npx -y @openai/codex@0.146.1"
     }
 
     fn build_command_builder(&self) -> Result<CommandBuilder, CommandBuildError> {
@@ -623,7 +663,9 @@ impl Codex {
             }
             None => None,
             Some(AskForApproval::UnlessTrusted) => Some(V2AskForApproval::UnlessTrusted),
-            Some(AskForApproval::OnFailure) => Some(V2AskForApproval::OnFailure),
+            // Codex 0.146.1 dropped the `OnFailure` policy; upstream folds the
+            // legacy `on-failure` wire value into `OnRequest` via serde alias.
+            Some(AskForApproval::OnFailure) => Some(V2AskForApproval::OnRequest),
             Some(AskForApproval::OnRequest) => Some(V2AskForApproval::OnRequest),
             Some(AskForApproval::Never) => Some(V2AskForApproval::Never),
         };
@@ -659,7 +701,7 @@ impl Codex {
 
         let (model, is_fast) = resolve_model(self.model.as_deref());
         let service_tier = if is_fast {
-            Some(Some(ServiceTier::Fast))
+            Some(Some(ServiceTier::Fast.to_string()))
         } else {
             None
         };

@@ -114,6 +114,7 @@ impl ReasoningOption {
             "high" => Some(3),
             "xhigh" => Some(4),
             "max" => Some(5),
+            "ultra" => Some(6),
             _ => None,
         };
 

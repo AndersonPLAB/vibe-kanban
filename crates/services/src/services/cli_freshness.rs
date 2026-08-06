@@ -18,7 +18,7 @@ const PINNED_CLIS: &[(&str, &str, &str)] = &[
     ),
     (
         "@openai/codex",
-        "0.124.0",
+        "0.146.1",
         "crates/executors/src/executors/codex.rs — base_command() npx pin",
     ),
     (

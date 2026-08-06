@@ -6,7 +6,10 @@ use rmcp::{
 
 use super::{McpMode, McpServer};
 
-#[tool_handler]
+// rmcp 1.8 changed the `#[tool_handler]` default router from the `self.tool_router`
+// field to a `Self::tool_router()` associated fn. Our router is a per-mode field
+// that is also mutated at runtime, so point the macro back at it explicitly.
+#[tool_handler(router = self.tool_router)]
 impl ServerHandler for McpServer {
     fn get_info(&self) -> ServerInfo {
         let mut tool_names = self

@@ -191,6 +191,8 @@ impl Codex {
                             .await
                             .ok()
                             .and_then(|r| r.config.service_tier)
+                            // service_tier is a raw wire string in the v2 protocol.
+                            .and_then(|t| ServiceTier::from_request_value(&t))
                             .map(|t| matches!(t, ServiceTier::Fast))
                             .unwrap_or(false);
                         if status {
@@ -225,7 +227,7 @@ impl Codex {
                         // Fork current session with new tier if one is active
                         if let Some(old_thread_id) = session_id {
                             let service_tier = if want_fast {
-                                Some(Some(ServiceTier::Fast))
+                                Some(Some(ServiceTier::Fast.to_string()))
                             } else {
                                 Some(None)
                             };
@@ -400,7 +402,8 @@ async fn fetch_status_message(
     // Show fast mode
     let global_fast = config_resp
         .as_ref()
-        .and_then(|r| r.config.service_tier.as_ref())
+        .and_then(|r| r.config.service_tier.as_deref())
+        .and_then(ServiceTier::from_request_value)
         .map(|t| matches!(t, ServiceTier::Fast))
         .unwrap_or(false);
     if global_fast || session_fast {
