@@ -62,7 +62,7 @@ fn base_command(claude_code_router: bool) -> &'static str {
     if claude_code_router {
         "npx -y @musistudio/claude-code-router@1.0.66 code"
     } else {
-        "npx -y @anthropic-ai/claude-code@2.1.119"
+        "npx -y @anthropic-ai/claude-code@2.1.223"
     }
 }
 
@@ -276,10 +276,12 @@ fn default_discovered_options() -> crate::executor_discovery::ExecutorDiscovered
 
     // zona de envelhecimento — revisar no merge mensal
     let static_models = [
-        ("opus", "Opus"),
-        ("opus[1m]", "Opus (1M context)"),
-        ("sonnet", "Sonnet"),
-        ("haiku", "Haiku"),
+        ("fable", "fable → Fable 5"),
+        ("fable[1m]", "fable[1m] → Fable 5 (1M context)"),
+        ("opus", "opus → Opus 5"),
+        ("opus[1m]", "opus[1m] → Opus 5 (1M context)"),
+        ("sonnet", "sonnet → Sonnet 5"),
+        ("haiku", "haiku → Haiku 4.5"),
     ];
 
     ExecutorDiscoveredOptions {
@@ -312,6 +314,31 @@ fn default_discovered_options() -> crate::executor_discovery::ExecutorDiscovered
         loading_slash_commands: false,
         error: None,
     }
+}
+
+// zona de envelhecimento — revisar no merge mensal
+/// Canonical model id each alias in `static_models` currently resolves to
+/// (source: the pinned CLI's `latest_per_family`). Lets the cache merge
+/// recognize when an `~/.claude.json` overlay entry names the same model an
+/// alias already represents (e.g. `claude-fable-5[1m]` when `fable[1m]` is
+/// already listed), instead of showing it twice.
+const CANONICAL_MODEL_IDS: &[(&str, &str)] = &[
+    ("fable", "claude-fable-5"),
+    ("opus", "claude-opus-5"),
+    ("sonnet", "claude-sonnet-5"),
+    ("haiku", "claude-haiku-4-5"),
+];
+
+/// The canonical id `alias` resolves to per `CANONICAL_MODEL_IDS`, carrying
+/// over any `[1m]` suffix (`fable[1m]` -> `claude-fable-5[1m]`).
+fn canonical_id_for_alias(alias: &str) -> Option<String> {
+    let (base, suffix) = alias
+        .strip_suffix("[1m]")
+        .map_or((alias, ""), |base| (base, "[1m]"));
+    CANONICAL_MODEL_IDS
+        .iter()
+        .find(|(a, _)| *a == base)
+        .map(|(_, canonical)| format!("{canonical}{suffix}"))
 }
 
 #[derive(Deserialize)]
@@ -359,13 +386,26 @@ fn merge_model_cache_entries(
         .get("orgModelDefaultCache")
         .and_then(|value| serde_json::from_value(value.clone()).ok());
 
+    // Canonical ids already covered by an alias in `models` (e.g. "opus" ->
+    // "claude-opus-5") — an overlay entry naming one of these is the same
+    // model the alias already represents, not a new one.
+    let covered_canonical_ids: Vec<String> = models
+        .iter()
+        .filter_map(|model| canonical_id_for_alias(&model.id))
+        .collect();
+
     let mut merged = models;
     for (id, name) in extra_options
         .into_iter()
         .map(|option| (option.value, option.label))
         .chain(org_default.map(|default| (default.name.clone(), default.name)))
     {
-        if id.is_empty() || merged.iter().any(|model| model.id == id) {
+        if id.is_empty()
+            || merged.iter().any(|model| model.id == id)
+            || covered_canonical_ids
+                .iter()
+                .any(|canonical| canonical == &id)
+        {
             continue;
         }
         merged.push(ModelInfo {
@@ -2871,19 +2911,21 @@ mod tests {
             merge_model_cache_entries(default_discovered_options().model_selector.models, &config);
         let ids: Vec<&str> = models.iter().map(|m| m.id.as_str()).collect();
 
-        // Known models keep their static entry (no duplicate `opus`).
+        // "opus" is an exact-id duplicate, and "claude-fable-5[1m]" is the
+        // canonical id the "fable[1m]" alias already represents — both are
+        // skipped. Only the genuinely new "sonnet-org" org default is appended.
         assert_eq!(
             ids,
             [
+                "fable",
+                "fable[1m]",
                 "opus",
                 "opus[1m]",
                 "sonnet",
                 "haiku",
-                "claude-fable-5[1m]",
                 "sonnet-org"
             ]
         );
-        assert_eq!(models[4].name, "Fable");
     }
 
     #[test]
