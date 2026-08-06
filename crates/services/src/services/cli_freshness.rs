@@ -9,37 +9,37 @@ const PINNED_CLIS: &[(&str, &str, &str)] = &[
     (
         "@anthropic-ai/claude-code",
         "2.1.223",
-        "crates/executors/src/executors/claude.rs:65 — npx pin",
+        "crates/executors/src/executors/claude.rs — base_command(), the claude-code npx pin",
     ),
     (
         "@musistudio/claude-code-router",
         "1.0.66",
-        "crates/executors/src/executors/claude.rs:63 — npx pin",
+        "crates/executors/src/executors/claude.rs — base_command(), the claude-code-router npx pin",
     ),
     (
         "@openai/codex",
         "0.124.0",
-        "crates/executors/src/executors/codex.rs:526 — npx pin",
+        "crates/executors/src/executors/codex.rs — base_command() npx pin",
     ),
     (
         "@google/gemini-cli",
         "0.29.3",
-        "crates/executors/src/executors/gemini.rs:49 — npx pin",
+        "crates/executors/src/executors/gemini.rs — build_command_builder() npx pin",
     ),
     (
         "opencode-ai",
         "1.4.7",
-        "crates/executors/src/executors/opencode.rs:92 — npx pin",
+        "crates/executors/src/executors/opencode.rs — build_command_builder() npx pin",
     ),
     (
         "@qwen-code/qwen-code",
         "0.9.1",
-        "crates/executors/src/executors/qwen.rs:45 — npx pin",
+        "crates/executors/src/executors/qwen.rs — build_command_builder() npx pin",
     ),
     (
         "@github/copilot",
         "0.0.403",
-        "crates/executors/src/executors/copilot.rs:52 — npx pin",
+        "crates/executors/src/executors/copilot.rs — build_command_builder() npx pin",
     ),
 ];
 
@@ -236,7 +236,8 @@ mod tests {
                 pinned_version: "0.124.0".to_string(),
                 latest_version: "0.146.1".to_string(),
                 is_stale: true,
-                pin_hint: "crates/executors/src/executors/codex.rs:526 — npx pin".to_string(),
+                pin_hint: "crates/executors/src/executors/codex.rs — base_command() npx pin"
+                    .to_string(),
             }],
         };
 

@@ -217,9 +217,21 @@ export function ModelSelectorContainer({
     return null;
   }, [selectedModel, recentReasoningByModel]);
 
+  // A reasoning id only survives if the *currently selected* model offers it:
+  // switching models must not carry a stale effort over (the CLI rejects e.g.
+  // `xhigh` on claude-haiku-4-5). Models that declare no options at all have no
+  // matrix to check against — their effort comes from the executor's own config
+  // field (droid, opencode), so it passes through untouched.
+  const offeredBySelectedModel = (id: string | null | undefined) => {
+    if (!id) return null;
+    const options = selectedModel?.reasoning_options;
+    if (!options?.length) return id;
+    return options.some((option) => option.id === id) ? id : null;
+  };
+
   const selectedReasoningId =
-    executorConfig?.reasoning_id ??
-    presetReasoningId ??
+    offeredBySelectedModel(executorConfig?.reasoning_id) ??
+    offeredBySelectedModel(presetReasoningId) ??
     recentReasoningId ??
     resolveDefaultReasoningId(
       selectedModel?.reasoning_options ?? [],

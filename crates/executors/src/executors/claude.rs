@@ -271,8 +271,8 @@ fn default_discovered_options() -> crate::executor_discovery::ExecutorDiscovered
 
     let full_effort =
         ReasoningOption::from_names(["low", "medium", "high", "xhigh", "max"].map(String::from));
-    // O binário (2.1.223) responde `false` a `xhigh_effort`/`max_effort` para
-    // `claude-haiku-4-5`; a família 5 é liberada por capability.
+    // The binary (2.1.223) answers `false` to `xhigh_effort`/`max_effort` for
+    // `claude-haiku-4-5`; the 5 family is allowed by capability.
     let haiku_effort = ReasoningOption::from_names(["low", "medium", "high"].map(String::from));
 
     // zona de envelhecimento — revisar no merge mensal
@@ -413,6 +413,10 @@ fn merge_model_cache_entries(
             id,
             name,
             provider_id: None,
+            // Deliberately empty: the overlay carries models we have no
+            // capability matrix for, and an `--effort` the model rejects is a
+            // hard CLI failure, while a missing effort selector is only a soft
+            // limitation. Never send a flag we cannot prove is supported.
             reasoning_options: vec![],
         });
     }
