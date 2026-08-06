@@ -19,6 +19,7 @@ use services::services::{
     analytics::{AnalyticsConfig, AnalyticsContext, AnalyticsService, generate_user_id},
     approvals::Approvals,
     auth::AuthContext,
+    cli_freshness,
     config::{Config, load_config_from_file, save_config_to_file},
     container::ContainerService,
     events::EventService,
@@ -35,7 +36,10 @@ use tokio::sync::{Notify, RwLock};
 use tokio_util::sync::CancellationToken;
 use trusted_key_auth::runtime::TrustedKeyAuthRuntime;
 use utils::{
-    assets::{config_path, credentials_path, server_signing_key_path, trusted_keys_path},
+    assets::{
+        cli_freshness_path, config_path, credentials_path, server_signing_key_path,
+        trusted_keys_path,
+    },
     msg_store::MsgStore,
 };
 use uuid::Uuid;
@@ -156,6 +160,8 @@ impl Deployment for LocalDeployment {
                 }
             });
         }
+
+        tokio::spawn(cli_freshness::refresh_if_stale(cli_freshness_path()));
 
         let approvals = Approvals::new();
         let queued_message_service = QueuedMessageService::new();

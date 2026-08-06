@@ -542,6 +542,10 @@
       "tooltip": "Entre para ver os projetos",
       "title": "Boards kanban",
       "description": "Entre para organizar seus agentes de código com boards kanban."
+    },
+    "cliFreshness": {
+      "title": "CLIs de executor desatualizados",
+      "tooltip": "CLIs de executor desatualizados — clique para ver detalhes"
     }
   },
   "askQuestion": {

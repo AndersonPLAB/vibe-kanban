@@ -20,6 +20,7 @@ use executors::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use services::services::{
+    cli_freshness::{self, CliFreshnessReport},
     config::{
         Config, ConfigError, SoundFile,
         editor::{EditorConfig, EditorType},
@@ -30,7 +31,11 @@ use services::services::{
 };
 use tokio::fs;
 use ts_rs::TS;
-use utils::{assets::config_path, log_msg::LogMsg, response::ApiResponse};
+use utils::{
+    assets::{cli_freshness_path, config_path},
+    log_msg::LogMsg,
+    response::ApiResponse,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -57,6 +62,7 @@ pub fn router() -> Router<DeploymentImpl> {
             "/agents/discovered-options/ws",
             get(stream_executor_discovered_options_ws),
         )
+        .route("/cli-freshness", get(get_cli_freshness))
 }
 
 #[derive(Debug, Serialize, Deserialize, TS)]
@@ -558,6 +564,13 @@ async fn check_agent_availability(
     };
 
     ResponseJson(ApiResponse::success(info))
+}
+
+/// Reads the on-disk CLI freshness cache. Never errors: an empty report (no entries)
+/// just means nothing has been checked yet.
+async fn get_cli_freshness() -> ResponseJson<ApiResponse<CliFreshnessReport>> {
+    let report = cli_freshness::load_report(&cli_freshness_path()).await;
+    ResponseJson(ApiResponse::success(report))
 }
 
 #[derive(Debug, Deserialize, TS)]

@@ -191,6 +191,10 @@ export type PullRequestInfo = { number: bigint, url: string, status: MergeStatus
 
 export type ApprovalInfo = { approval_id: string, tool_name: string, execution_process_id: string, is_question: boolean, created_at: string, timeout_at: string, };
 
+export type CliFreshnessReport = { checked_at: number, entries: Array<CliFreshnessEntry>, };
+
+export type CliFreshnessEntry = { package: string, pinned_version: string, latest_version: string, is_stale: boolean, pin_hint: string, };
+
 export type ApprovalStatus = { "status": "pending" } | { "status": "approved" } | { "status": "denied", reason?: string, } | { "status": "timed_out" };
 
 export type QuestionAnswer = { question: string, answer: Array<string>, };
