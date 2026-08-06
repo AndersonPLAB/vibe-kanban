@@ -56,10 +56,36 @@ ModelSelectorContainer.tsx  deg 39  → ModelSelectorPopover.tsx (packages/ui)
         ↑ consumidores: SessionChatBoxContainer · CreateChatBoxContainer
 ```
 
+Dentro dessa cadeia, `discover_options` já não é uma foto estática — cada executor decide
+por si o quão dinâmico consegue ser. Codex spawna `codex app-server` e chama `model/list`
+por JSON-RPC (metadado local, zero token). Claude Code é híbrido: tabela estática de
+apelidos com display "apelido → Nome Real" (`fable`/`fable[1m]`/`opus`/`opus[1m]`/`sonnet`/
+`haiku`, pin `2.1.223`) por cima de um overlay lido de `~/.claude.json`
+(`additionalModelOptionsCache`/`orgModelDefaultCache`), deduplicado por `CANONICAL_MODEL_IDS`
+(claude.rs). Gemini continua 100% estático — o ACP `session/new` só devolve
+`availableModels` a partir da CLI 0.36.0, e está bloqueado nesta conta (gemini.rs). O
+esforço de raciocínio segue o mesmo espírito: `ReasoningOption::from_names_with_default`
+tira o "high" cravado do default, cada modelo com sua própria matriz (`haiku` fica sem
+`xhigh`/`max`, os demais vão `low`→`max`), e o default do usuário vem de `default_reasoning_effort`
+(Config v8, `GeneralSettingsSection`) resolvido em `modelSelector.ts`/
+`ModelSelectorContainer.tsx` na ordem override → preset → recente → configurado →
+`is_default` do modelo.
+
 **Executors** — `ExecutorError` (159 arestas) é o eixo; `command.rs` monta comandos
 (`CommandBuilder`, `CmdOverrides` por agente: Codex/ClaudeCode/Opencode/CursorAgent/Copilot),
 `profile.rs` resolve perfis (`ExecutorProfileId`, `ExecutorConfigs`), `mod.rs` faz spawn
 (`SpawnedChild`), `logs/` normaliza saída por agente, `mcp_config.rs` adapta MCP por agente.
+Toda lista estática de modelos carrega `// zona de envelhecimento — revisar no merge
+mensal` (fallback do Codex e catálogo do Gemini) — o pin da CLI e o catálogo andam juntos,
+e é o merge mensal que revisa os dois.
+
+**Regra do frescor** — boot dispara `cli_freshness::refresh_if_stale` fire-and-forget
+(`local-deployment/src/lib.rs`), que compara os pins `npx` dos executores com
+`registry.npmjs.org/{pkg}/latest` e cacheia por 24h em `cli_freshness.json`
+(`crates/services/src/services/cli_freshness.rs`). Zero LLM, zero token. `GET
+/cli-freshness` serve o cache; a `AppBar` mostra aviso discreto via `useCliFreshness` +
+`SharedAppLayout`. Quando acusar desatualizado, o `pin_hint` de cada entrada aponta o
+arquivo/linha do `base_command` a bumpar — mesma cadência do merge mensal acima.
 
 **Rotas workspaces/sessions** — todas passam por `ApiResponse` + `Deployment`:
 `workspaces/git.rs` (deg 43, o mais pesado, com `git_ops_safety.rs`), `create.rs`
