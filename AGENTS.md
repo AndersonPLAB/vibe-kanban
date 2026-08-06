@@ -11,6 +11,11 @@
 - `scripts/`: Dev helpers (ports, DB preparation).
 - `docs/`: Documentation files.
 
+### Start here
+- [`docs/CODEMAP.md`](docs/CODEMAP.md) — mapa de bairro do fork local-first: por onde
+  entrar, o que é a zona do sunset (código cloud inerte, não estender) e como consultar
+  o grafo (`graphify query`). Leia antes de abrir arquivos.
+
 ### Crate-specific guides
 - [`crates/remote/AGENTS.md`](crates/remote/AGENTS.md) — Remote server architecture, ElectricSQL integration, mutation patterns, environment variables.
 - [`docs/AGENTS.md`](docs/AGENTS.md) — Mintlify documentation writing guidelines and component reference.
