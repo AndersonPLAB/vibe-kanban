@@ -148,16 +148,11 @@ estruturais — a última exige redesenhar `Deployment` e `ApiError`.
 
 ## O que você vai ver em todo lugar
 
-| Nó | Arestas | O que é |
-|---|---|---|
-| `Result` (web-core `lib/api.ts`) | 1106 | envelope de toda chamada HTTP no front |
-| `Error` (executors) | 277 | erro normalizado de agente |
-| `cn()` (packages/ui) | 219 (+85 num clone em web-core) | merge de classes Tailwind |
-| `ApiResponse` (crates/utils) | 187 | envelope de toda rota axum |
-| `ExecutorError` | 159 | eixo do sistema de agentes |
-| `GitService` / `MsgStore` | 91 / 84 | git e streaming de logs |
-
-Dois `cn()` distintos (ui e web-core) são duplicação real, não artefato do grafo.
+Os envelopes: `Result` (web-core `lib/api.ts`, 1106 arestas) em toda chamada HTTP do front
+e `ApiResponse` (crates/utils, 187) em toda rota axum. Os eixos: `ExecutorError` (159) nos
+agentes, `Error` (executors, 277) no log normalizado, `GitService` (91) e `MsgStore` (84).
+`cn()` aparece duas vezes — 219 em `packages/ui` e 85 num clone em web-core: duplicação
+real, não artefato do grafo.
 
 ## Perguntas que este grafo responde bem
 
@@ -169,13 +164,10 @@ Dois `cn()` distintos (ui e web-core) são duplicação real, não artefato do g
 
 ## Honestidade sobre este mapa
 
-- **Fora do grafo:** 71 `.mdx` de docs/marketing, 328 imagens, 8 `.wav`, `npx-cli/`,
-  `scripts/`, `shared/` gerado, `.github/`. Escolha deliberada de escopo.
-- **Saúde do grafo:** 4.033 arestas com ponta solta (quase todas símbolos externos —
-  `chrono`, `react` etc. aparecem como alvo sem nó) e ~500 pares colapsados
-  (`calls` + `references` entre o mesmo par). 386 arquivos `query-*.json` (cache SQLx)
-  não geraram nós. Nada disso invalida a topologia; não confie em contagem de arestas
-  como métrica de acoplamento.
-- **1.531 nós isolados** (≤1 conexão): tipos gerados e enums pequenos, não descoberta.
-- Extração: 99% EXTRACTED (AST determinístico), 1% INFERRED (303 arestas, confiança
-  média 0.76), 2 arestas AMBIGUOUS. Custo: ~151k tokens num subagente, só nos 12 docs.
+- **Fora do escopo, de propósito:** 71 `.mdx` de docs/marketing, 328 imagens, 8 `.wav`,
+  `npx-cli/`, `scripts/`, `shared/` gerado, `.github/`.
+- **Não use contagem de arestas como métrica de acoplamento:** 4.033 arestas têm ponta
+  solta (símbolos externos como `chrono`/`react`, sem nó), ~500 pares vêm colapsados
+  (`calls` + `references` no mesmo par), 386 `query-*.json` (cache SQLx) não geraram nós e
+  1.531 nós são isolados (tipos gerados). Extração: 99% EXTRACTED por AST, 1% INFERRED
+  (303 arestas, confiança média 0.76), 2 AMBIGUOUS — ~151k tokens, só nos 12 docs.
