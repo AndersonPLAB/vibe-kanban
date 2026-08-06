@@ -98,14 +98,67 @@ da era cloud, colapsados de propósito para não poluir o mapa:
 Inerte no build local (`VK_SHARED_API_BASE` ausente ⇒ "remote features disabled",
 "relay unavailable"). **Não estender, não copiar padrão de lá.**
 
-Quem ainda toca a zona (arestas vivas preservadas de propósito): **206** em
-`packages/web-core/src`, **80** em `crates/api-types/src`, **30** em `crates/server/src`,
-**20** em `packages/ui/src`. Ou seja: a fronteira não está limpa — inclusive
-`i18n/index.ts` ainda importa de lá. Ao mexer nesses arquivos, espere ver código morto ao lado.
+A fronteira não está limpa, e ela é menor e mais funda do que parece — ver
+"Fronteira do Sunset" abaixo.
 
 Cinza, não colapsado: `crates/services/src/services/remote_client.rs`
 (`RemoteClient`, 92 arestas; `RemoteClientError`, 80) — vive em `services/`, é usado
 condicionalmente e fica inerte sem cloud. Trate como sunset-adjacente.
+
+## Fronteira do Sunset
+
+Direção das arestas, não vizinhança: **44 arquivos vivos dependem** do sunset; **121**
+são apenas importados por ele (direção inofensiva); **969** "vizinhos" eram símbolos
+externos, não arquivos. _(Correção: uma versão anterior deste mapa citava 206/80/30 —
+aquilo somava as duas direções mais símbolos externos.)_
+
+| Categoria | N | O que é |
+|---|---|---|
+| REAL — TS/Electric | 12 | importam `useShape` de `shared/integrations/electric/hooks` (runtime, live query). Montam, tentam sincronizar, falham em silêncio sem cloud |
+| REAL — plumbing de relay em Rust | 12 | `server/src/relay_pairing/`, `routes/relay_auth/`, `routes/host_relay/`, `routes/webrtc.rs`, `runtime/relay_registration.rs`, `middleware/{relay_request_signature,signed_ws}.rs`, `crates/embedded-ssh/*`, `crates/desktop-bridge/*` — cloud dentro de crates "vivos", fora do regex do colapso |
+| ESTRUTURAL | 3 | `crates/deployment/src/lib.rs`, `crates/local-deployment/src/lib.rs`, `crates/server/src/error.rs` |
+| TIPO | 2 | só `shared/remote-types` (tipos/consts gerados de `crates/remote`), sem execução |
+| MORTA-DISFARÇADA | 1 | `LocalProjectKanban.tsx` |
+| RUÍDO | 14 | 12 arestas `indirect_call` INFERRED contra `preview-proxy/src/bippy_bundle.js` (minificado) + 2 colisões de nome |
+
+**Os 10 mais acoplados** (arestas → sunset, com veredito):
+
+| # | Arquivo | Veredito |
+|---|---|---|
+| 15 | `crates/git/src/lib.rs` | RUÍDO — é `git2::Remote`/`GitRemote`/`list_remotes`, git remote, nada de cloud. Colisão de nome com `crates/remote*` |
+| 7 | `crates/local-deployment/src/lib.rs` | ESTRUTURAL — `use relay_control, relay_hosts, relay_webrtc, remote_info, RemoteClient` |
+| 7 | `crates/server/src/relay_pairing/server.rs` | REAL — handshake de pareamento de relay |
+| 5 | `crates/git/tests/git_ops_safety.rs` | RUÍDO — mesma colisão, em teste |
+| 5 | `crates/server/src/routes/relay_auth/server.rs` | REAL |
+| 4 | `crates/desktop-bridge/src/ssh_config.rs` | REAL — túnel SSH do desktop bridge |
+| 4 | `crates/server/src/middleware/relay_request_signature.rs` | REAL |
+| 3 | `crates/embedded-ssh/src/handler.rs` | REAL |
+| 3 | `crates/server/src/error.rs` | ESTRUTURAL — mapeia 6+ erros de relay/remote em `ApiError` |
+| 3 | `crates/server/src/routes/relay_auth/client.rs` | REAL |
+
+**O achado que importa:** o cloud não está atrás de um feature flag isolável. `deployment`
+(a camada de trait/DI em que o servidor local inteiro se apoia) carrega campos de
+`relay_control`/`relay_hosts`/`relay_webrtc`/`remote_info`, e `ApiError` conhece os erros
+de relay. Arrancar o sunset é cirurgia nessas 3 costuras, não `rm -rf`.
+
+**MORTA-DISFARÇADA, o caso exemplar:** `LocalProjectKanban.tsx` tem 5 linhas e só faz
+`return <ProjectKanban />`. Mora fora do sunset e é montado por **rotas vivas** —
+`/_app/projects/$projectId` e 4 rotas `issues`/`hosts`. `ProjectKanban` abre com
+`useAuth`, `LoginRequiredPrompt`, `useOrganizationProjects` e renderiza
+`ProjectSunsetPage`. Ou seja: **a rota de "projects" do app local termina na página de
+sunset**. O board da Variante A (`/workspaces/board`) é o caminho vivo.
+
+**Veredito i18n (pt-BR) — não há bloqueio:** `i18n/index.ts` tem duas linhas
+(`import './config'; export { default } from './config';`) e **não importa nada do
+sunset**. A aresta no grafo era a direção inversa: código do sunset (`ProjectKanban`,
+via `useTranslation`) importa o i18n. Adicionar `pt-BR` é local a três pontos —
+`i18n/locales/pt-BR/`, `SUPPORTED_I18N_CODES` e `getEndonym()` em `languages.ts` — e
+não toca a fronteira. O único efeito colateral é que páginas do sunset ganhariam chaves
+faltando em pt-BR, e elas não são alcançadas pelo caminho vivo.
+
+**Isto é cartografia, não faxina.** Nada foi refatorado. Se um dia for: a ordem de menor
+risco é (1) rotas `/projects` → sunset, (2) os 12 hooks Electric, (3) as 3 costuras
+estruturais — a última exige redesenhar `Deployment` e `ApiError`.
 
 ## O que você vai ver em todo lugar
 
