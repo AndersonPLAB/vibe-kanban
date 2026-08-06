@@ -274,27 +274,30 @@ fn default_discovered_options() -> crate::executor_discovery::ExecutorDiscovered
 
     let supports_effort = |id: &str| -> bool { id.contains("opus") || id.contains("sonnet") };
 
+    // zona de envelhecimento — revisar no merge mensal
+    let static_models = [
+        ("opus", "Opus"),
+        ("opus[1m]", "Opus (1M context)"),
+        ("sonnet", "Sonnet"),
+        ("haiku", "Haiku"),
+    ];
+
     ExecutorDiscoveredOptions {
         model_selector: ModelSelectorConfig {
             providers: vec![],
-            models: [
-                ("opus", "Opus"),
-                ("opus[1m]", "Opus (1M context)"),
-                ("sonnet", "Sonnet"),
-                ("haiku", "Haiku"),
-            ]
-            .into_iter()
-            .map(|(id, name)| ModelInfo {
-                id: id.to_string(),
-                name: name.to_string(),
-                provider_id: None,
-                reasoning_options: if supports_effort(id) {
-                    effort_options.clone()
-                } else {
-                    vec![]
-                },
-            })
-            .collect(),
+            models: static_models
+                .into_iter()
+                .map(|(id, name)| ModelInfo {
+                    id: id.to_string(),
+                    name: name.to_string(),
+                    provider_id: None,
+                    reasoning_options: if supports_effort(id) {
+                        effort_options.clone()
+                    } else {
+                        vec![]
+                    },
+                })
+                .collect(),
             default_model: Some("opus".to_string()),
             agents: vec![],
             permissions: vec![
@@ -309,6 +312,71 @@ fn default_discovered_options() -> crate::executor_discovery::ExecutorDiscovered
         loading_slash_commands: false,
         error: None,
     }
+}
+
+#[derive(Deserialize)]
+struct AdditionalModelOption {
+    value: String,
+    label: String,
+}
+
+#[derive(Deserialize)]
+struct OrgModelDefault {
+    name: String,
+}
+
+/// Merge the models Claude Code itself caches in `~/.claude.json` into the
+/// static list. The CLI writes `additionalModelOptionsCache` /
+/// `orgModelDefaultCache` when an account gets access to a model before a
+/// release ships with it, so this is how new models show up without a version
+/// bump. Reading a file costs nothing; any parse problem is ignored and the
+/// static list stands on its own.
+fn merge_local_model_cache(
+    models: Vec<crate::model_selector::ModelInfo>,
+) -> Vec<crate::model_selector::ModelInfo> {
+    let Some(config) = dirs::home_dir()
+        .and_then(|home| std::fs::read_to_string(home.join(".claude.json")).ok())
+        .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
+    else {
+        tracing::debug!("No readable ~/.claude.json, keeping the static model list");
+        return models;
+    };
+
+    merge_model_cache_entries(models, &config)
+}
+
+fn merge_model_cache_entries(
+    models: Vec<crate::model_selector::ModelInfo>,
+    config: &serde_json::Value,
+) -> Vec<crate::model_selector::ModelInfo> {
+    use crate::model_selector::ModelInfo;
+
+    let extra_options: Vec<AdditionalModelOption> = config
+        .get("additionalModelOptionsCache")
+        .and_then(|value| serde_json::from_value(value.clone()).ok())
+        .unwrap_or_default();
+    let org_default: Option<OrgModelDefault> = config
+        .get("orgModelDefaultCache")
+        .and_then(|value| serde_json::from_value(value.clone()).ok());
+
+    let mut merged = models;
+    for (id, name) in extra_options
+        .into_iter()
+        .map(|option| (option.value, option.label))
+        .chain(org_default.map(|default| (default.name.clone(), default.name)))
+    {
+        if id.is_empty() || merged.iter().any(|model| model.id == id) {
+            continue;
+        }
+        merged.push(ModelInfo {
+            id,
+            name,
+            provider_id: None,
+            reasoning_options: vec![],
+        });
+    }
+
+    merged
 }
 
 #[async_trait]
@@ -441,14 +509,14 @@ impl StandardCodingAgentExecutor for ClaudeCode {
                 provisional
                     .map(|p| {
                         let mut opts = p.as_ref().clone();
-                        opts.loading_models = false;
+                        opts.loading_models = true;
                         opts.loading_agents = true;
                         opts.loading_slash_commands = true;
                         opts
                     })
                     .unwrap_or_else(|| {
                         let mut opts = default_discovered_options();
-                        opts.loading_models = false;
+                        opts.loading_models = true;
                         opts.loading_agents = true;
                         opts.loading_slash_commands = true;
                         opts
@@ -470,14 +538,14 @@ impl StandardCodingAgentExecutor for ClaudeCode {
                 provisional
                     .map(|p| {
                         let mut opts = p.as_ref().clone();
-                        opts.loading_models = false;
+                        opts.loading_models = true;
                         opts.loading_agents = true;
                         opts.loading_slash_commands = true;
                         opts
                     })
                     .unwrap_or_else(|| {
                         let mut opts = default_discovered_options();
-                        opts.loading_models = false;
+                        opts.loading_models = true;
                         opts.loading_agents = true;
                         opts.loading_slash_commands = true;
                         opts
@@ -491,7 +559,7 @@ impl StandardCodingAgentExecutor for ClaudeCode {
                 })));
             }
             let mut opts = default_discovered_options();
-            opts.loading_models = false;
+            opts.loading_models = true;
             opts.loading_agents = true;
             opts.loading_slash_commands = true;
             (None, opts)
@@ -505,6 +573,11 @@ impl StandardCodingAgentExecutor for ClaudeCode {
         let discovery_stream = async_stream::stream! {
             let discovery_path = target_path.as_deref().unwrap_or(Path::new(".")).to_path_buf();
             let mut final_options = default_discovered_options();
+
+            final_options.model_selector.models =
+                merge_local_model_cache(final_options.model_selector.models);
+            yield patch::update_models(final_options.model_selector.models.clone());
+            yield patch::models_loaded();
 
             match this.discover_agents_and_slash_commands_initial(&discovery_path).await {
                 Ok((mut agent_options, slash_commands_initial, plugins)) => {
@@ -2776,6 +2849,62 @@ mod tests {
     fn normalize(json: &ClaudeJson, worktree: &str) -> Vec<NormalizedEntry> {
         let mut processor = ClaudeLogProcessor::new();
         normalize_helper(&mut processor, json, worktree)
+    }
+
+    #[test]
+    fn merges_model_cache_from_claude_config() {
+        // Shape taken from a real ~/.claude.json.
+        let config = serde_json::json!({
+            "additionalModelOptionsCache": [
+                {"value": "claude-fable-5[1m]", "label": "Fable", "description": "Most capable"},
+                {"value": "opus", "label": "Opus"}
+            ],
+            "orgModelDefaultCache": {
+                "name": "sonnet-org",
+                "updated_at": "2026-08-06",
+                "data_source": "org",
+                "override_user_selection": true
+            }
+        });
+
+        let models =
+            merge_model_cache_entries(default_discovered_options().model_selector.models, &config);
+        let ids: Vec<&str> = models.iter().map(|m| m.id.as_str()).collect();
+
+        // Known models keep their static entry (no duplicate `opus`).
+        assert_eq!(
+            ids,
+            [
+                "opus",
+                "opus[1m]",
+                "sonnet",
+                "haiku",
+                "claude-fable-5[1m]",
+                "sonnet-org"
+            ]
+        );
+        assert_eq!(models[4].name, "Fable");
+    }
+
+    #[test]
+    fn keeps_static_models_when_claude_config_is_unusable() {
+        let static_ids: Vec<String> = default_discovered_options()
+            .model_selector
+            .models
+            .iter()
+            .map(|m| m.id.clone())
+            .collect();
+
+        let merged = merge_model_cache_entries(
+            default_discovered_options().model_selector.models,
+            &serde_json::json!({
+                "additionalModelOptionsCache": "not an array",
+                "orgModelDefaultCache": null
+            }),
+        );
+
+        let ids: Vec<String> = merged.iter().map(|m| m.id.clone()).collect();
+        assert_eq!(ids, static_ids);
     }
 
     #[test]

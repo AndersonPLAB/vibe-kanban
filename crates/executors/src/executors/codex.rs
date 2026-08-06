@@ -49,11 +49,12 @@ pub(crate) fn fork_params_from(thread_id: String, params: ThreadStartParams) -> 
 
 use async_trait::async_trait;
 use codex_app_server_protocol::{
-    AskForApproval as V2AskForApproval, ReviewTarget, SandboxMode as V2SandboxMode,
+    AskForApproval as V2AskForApproval, Model, ReviewTarget, SandboxMode as V2SandboxMode,
     ThreadForkParams, ThreadStartParams, UserInput,
 };
-use codex_protocol::config_types::ServiceTier;
+use codex_protocol::{config_types::ServiceTier, openai_models::SPEED_TIER_FAST};
 use derivative::Derivative;
+use futures::StreamExt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -70,7 +71,7 @@ use self::{
 use crate::{
     approvals::ExecutorApprovalService,
     command::{CmdOverrides, CommandBuildError, CommandBuilder, CommandParts, apply_overrides},
-    env::ExecutionEnv,
+    env::{ExecutionEnv, RepoContext},
     executor_discovery::ExecutorDiscoveredOptions,
     executors::{
         AppendPrompt, AvailabilityInfo, BaseCodingAgent, ExecutorError, ExecutorExitResult,
@@ -146,6 +147,136 @@ pub enum ReasoningSummaryFormat {
 enum CodexSessionAction {
     Chat { prompt: String },
     Review { target: ReviewTarget },
+}
+
+/// How long we wait for `codex app-server` to answer `model/list` before
+/// falling back to the static catalog.
+const MODEL_DISCOVERY_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// Static catalog used until `model/list` answers, and as fallback when the
+/// app-server cannot be reached. Mirrors the catalog shipped with the pinned
+/// CLI version.
+fn default_discovered_options() -> ExecutorDiscoveredOptions {
+    // zona de envelhecimento — revisar no merge mensal
+    let static_models = [
+        ("gpt-5.4", "GPT-5.4", true),
+        ("gpt-5.4-mini", "GPT-5.4 Mini", false),
+        ("gpt-5.3-codex", "GPT-5.3 Codex", false),
+        ("gpt-5.2", "GPT-5.2", false),
+    ];
+
+    let reasoning_options = ReasoningOption::from_names_with_default(
+        [
+            ReasoningEffort::Low,
+            ReasoningEffort::Medium,
+            ReasoningEffort::High,
+            ReasoningEffort::Xhigh,
+        ]
+        .map(|e| e.as_ref().to_string()),
+        ReasoningEffort::Medium.as_ref(),
+    );
+
+    let models = static_models
+        .into_iter()
+        .flat_map(|(id, name, supports_fast)| {
+            let base = ModelInfo {
+                id: id.to_string(),
+                name: name.to_string(),
+                provider_id: None,
+                reasoning_options: reasoning_options.clone(),
+            };
+            let fast = supports_fast.then(|| ModelInfo {
+                id: format!("{id}-fast"),
+                name: format!("{name} Fast"),
+                provider_id: None,
+                reasoning_options: reasoning_options.clone(),
+            });
+            std::iter::once(base).chain(fast)
+        })
+        .collect();
+
+    ExecutorDiscoveredOptions {
+        model_selector: ModelSelectorConfig {
+            models,
+            default_model: Some("gpt-5.4".to_string()),
+            permissions: vec![
+                PermissionPolicy::Auto,
+                PermissionPolicy::Supervised,
+                PermissionPolicy::Plan,
+            ],
+            ..Default::default()
+        },
+        slash_commands: vec![
+            SlashCommandDescription {
+                name: "compact".to_string(),
+                description: Some(
+                    "summarize conversation to prevent hitting the context limit".to_string(),
+                ),
+            },
+            SlashCommandDescription {
+                name: "init".to_string(),
+                description: Some(
+                    "create an AGENTS.md file with instructions for Codex".to_string(),
+                ),
+            },
+            SlashCommandDescription {
+                name: "status".to_string(),
+                description: Some(
+                    "show current session configuration and token usage".to_string(),
+                ),
+            },
+            SlashCommandDescription {
+                name: "mcp".to_string(),
+                description: Some("list configured MCP tools".to_string()),
+            },
+            SlashCommandDescription {
+                name: "model".to_string(),
+                description: Some("view or switch the active model".to_string()),
+            },
+            SlashCommandDescription {
+                name: "fast".to_string(),
+                description: Some(
+                    "toggle fast mode for highest speed inference (2× plan usage). Use `/fast on` or `/fast off` to set explicitly".to_string(),
+                ),
+            },
+        ],
+        ..Default::default()
+    }
+}
+
+/// Map a `model/list` catalog to selector entries. Models advertising the
+/// `fast` speed tier get an extra `<id>-fast` entry, which [`resolve_model`]
+/// turns back into the base model plus `ServiceTier::Fast`.
+fn models_from_catalog(catalog: &[Model]) -> Vec<ModelInfo> {
+    catalog
+        .iter()
+        .flat_map(|model| {
+            let reasoning_options = ReasoningOption::from_names_with_default(
+                model
+                    .supported_reasoning_efforts
+                    .iter()
+                    .map(|option| option.reasoning_effort.to_string()),
+                &model.default_reasoning_effort.to_string(),
+            );
+            let base = ModelInfo {
+                id: model.id.clone(),
+                name: model.display_name.clone(),
+                provider_id: None,
+                reasoning_options: reasoning_options.clone(),
+            };
+            let fast = model
+                .additional_speed_tiers
+                .iter()
+                .any(|tier| tier == SPEED_TIER_FAST)
+                .then(|| ModelInfo {
+                    id: format!("{}-fast", model.id),
+                    name: format!("{} Fast", model.display_name),
+                    provider_id: None,
+                    reasoning_options,
+                });
+            std::iter::once(base).chain(fast)
+        })
+        .collect()
 }
 
 #[derive(Derivative, Clone, Serialize, Deserialize, TS, JsonSchema)]
@@ -311,117 +442,64 @@ impl StandardCodingAgentExecutor for Codex {
 
     async fn discover_options(
         &self,
-        _workdir: Option<&std::path::Path>,
-        _repo_path: Option<&std::path::Path>,
+        workdir: Option<&std::path::Path>,
+        repo_path: Option<&std::path::Path>,
     ) -> Result<futures::stream::BoxStream<'static, json_patch::Patch>, ExecutorError> {
-        let xhigh_reasoning_options = ReasoningOption::from_names(
-            [
-                ReasoningEffort::Low,
-                ReasoningEffort::Medium,
-                ReasoningEffort::High,
-                ReasoningEffort::Xhigh,
-            ]
-            .map(|e| e.as_ref().to_string()),
-        );
-
-        let options = ExecutorDiscoveredOptions {
-            model_selector: ModelSelectorConfig {
-                models: vec![
-                    ModelInfo {
-                        id: "gpt-5.5".to_string(),
-                        name: "GPT-5.5".to_string(),
-                        provider_id: None,
-                        reasoning_options: xhigh_reasoning_options.clone(),
-                    },
-                    ModelInfo {
-                        id: "gpt-5.5-fast".to_string(),
-                        name: "GPT-5.5 Fast".to_string(),
-                        provider_id: None,
-                        reasoning_options: xhigh_reasoning_options.clone(),
-                    },
-                    ModelInfo {
-                        id: "gpt-5.4".to_string(),
-                        name: "GPT-5.4".to_string(),
-                        provider_id: None,
-                        reasoning_options: xhigh_reasoning_options.clone(),
-                    },
-                    ModelInfo {
-                        id: "gpt-5.4-fast".to_string(),
-                        name: "GPT-5.4 Fast".to_string(),
-                        provider_id: None,
-                        reasoning_options: xhigh_reasoning_options.clone(),
-                    },
-                    ModelInfo {
-                        id: "gpt-5.4-mini".to_string(),
-                        name: "GPT-5.4 Mini".to_string(),
-                        provider_id: None,
-                        reasoning_options: xhigh_reasoning_options.clone(),
-                    },
-                    ModelInfo {
-                        id: "gpt-5.3-codex".to_string(),
-                        name: "GPT-5.3 Codex".to_string(),
-                        provider_id: None,
-                        reasoning_options: xhigh_reasoning_options.clone(),
-                    },
-                    ModelInfo {
-                        id: "gpt-5.3-codex-spark".to_string(),
-                        name: "GPT-5.3 Codex Spark".to_string(),
-                        provider_id: None,
-                        reasoning_options: xhigh_reasoning_options.clone(),
-                    },
-                    ModelInfo {
-                        id: "gpt-5.2".to_string(),
-                        name: "GPT-5.2".to_string(),
-                        provider_id: None,
-                        reasoning_options: xhigh_reasoning_options,
-                    },
-                ],
-                permissions: vec![
-                    PermissionPolicy::Auto,
-                    PermissionPolicy::Supervised,
-                    PermissionPolicy::Plan,
-                ],
-                ..Default::default()
-            },
-            slash_commands: vec![
-                SlashCommandDescription {
-                    name: "compact".to_string(),
-                    description: Some(
-                        "summarize conversation to prevent hitting the context limit".to_string(),
-                    ),
-                },
-                SlashCommandDescription {
-                    name: "init".to_string(),
-                    description: Some(
-                        "create an AGENTS.md file with instructions for Codex".to_string(),
-                    ),
-                },
-                SlashCommandDescription {
-                    name: "status".to_string(),
-                    description: Some(
-                        "show current session configuration and token usage".to_string(),
-                    ),
-                },
-                SlashCommandDescription {
-                    name: "mcp".to_string(),
-                    description: Some("list configured MCP tools".to_string()),
-                },
-                SlashCommandDescription {
-                    name: "model".to_string(),
-                    description: Some("view or switch the active model".to_string()),
-                },
-                SlashCommandDescription {
-                    name: "fast".to_string(),
-                    description: Some(
-                        "toggle fast mode for highest speed inference (2× plan usage). Use `/fast on` or `/fast off` to set explicitly".to_string(),
-                    ),
-                },
-            ],
-            ..Default::default()
+        use crate::{
+            executor_discovery::ExecutorConfigCacheKey, executors::utils::executor_options_cache,
         };
-        Ok(Box::pin(futures::stream::once(async move {
-            patch::executor_discovered_options(options)
-        })))
+
+        // The Codex catalog is account-scoped, not per-directory, so a single
+        // global cache entry is enough.
+        let cache_key =
+            ExecutorConfigCacheKey::new(None, self.compute_cmd_key(), BaseCodingAgent::Codex);
+        if let Some(cached) = executor_options_cache().get(&cache_key) {
+            let options = cached.as_ref().clone().with_loading(false);
+            return Ok(Box::pin(futures::stream::once(async move {
+                patch::executor_discovered_options(options)
+            })));
+        }
+
+        let mut initial_options = default_discovered_options();
+        initial_options.loading_models = true;
+        let initial_patch = patch::executor_discovered_options(initial_options);
+
+        let this = self.clone();
+        let discovery_path = workdir
+            .or(repo_path)
+            .unwrap_or(Path::new("."))
+            .to_path_buf();
+
+        let discovery_stream = async_stream::stream! {
+            let mut final_options = default_discovered_options();
+
+            match this.list_models(&discovery_path).await {
+                // An empty catalog would leave the picker with nothing to pick.
+                Ok(catalog) if !catalog.is_empty() => {
+                    final_options.model_selector.models = models_from_catalog(&catalog);
+                    final_options.model_selector.default_model = catalog
+                        .iter()
+                        .find(|model| model.is_default)
+                        .map(|model| model.id.clone());
+                }
+                Ok(_) => {
+                    tracing::warn!("Codex returned an empty model list, keeping static fallback");
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to list Codex models, keeping static fallback: {e}");
+                }
+            }
+
+            yield patch::update_models(final_options.model_selector.models.clone());
+            yield patch::update_default_model(final_options.model_selector.default_model.clone());
+            yield patch::models_loaded();
+
+            executor_options_cache().put(cache_key, final_options);
+        };
+
+        Ok(Box::pin(
+            futures::stream::once(async move { initial_patch }).chain(discovery_stream),
+        ))
     }
 
     async fn spawn_review(
@@ -456,6 +534,78 @@ impl Codex {
         }
 
         apply_overrides(builder, &self.cmd)
+    }
+
+    fn compute_cmd_key(&self) -> String {
+        serde_json::to_string(&self.cmd).unwrap_or_default()
+    }
+
+    /// Ask a throwaway `codex app-server` for the model catalog. `model/list`
+    /// is a metadata request: no thread is started, so no tokens are spent.
+    async fn list_models(&self, current_dir: &Path) -> Result<Vec<Model>, ExecutorError> {
+        let command_parts = self.build_command_builder()?.build_initial()?;
+        let (program_path, args) = command_parts.into_resolved().await?;
+
+        let mut process = Command::new(program_path);
+        process
+            .kill_on_drop(true)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .current_dir(current_dir)
+            .env("NPM_CONFIG_LOGLEVEL", "error")
+            .env("NODE_NO_WARNINGS", "1")
+            .env("NO_COLOR", "1")
+            .env("RUST_LOG", "error")
+            .args(&args);
+
+        ExecutionEnv::new(RepoContext::default(), false, String::new())
+            .with_profile(&self.cmd)
+            .apply_to_command(&mut process);
+
+        let mut child = process.group_spawn_no_window()?;
+        let child_stdout = child.inner().stdout.take().ok_or_else(|| {
+            ExecutorError::Io(std::io::Error::other("Codex app server missing stdout"))
+        })?;
+        let child_stdin = child.inner().stdin.take().ok_or_else(|| {
+            ExecutorError::Io(std::io::Error::other("Codex app server missing stdin"))
+        })?;
+
+        let cancel = tokio_util::sync::CancellationToken::new();
+        let (exit_signal_tx, _exit_signal_rx) = tokio::sync::oneshot::channel();
+        let client = AppServerClient::new(
+            LogWriter::new(tokio::io::sink()),
+            None,
+            false,
+            false,
+            RepoContext::default(),
+            false,
+            String::new(),
+            cancel.clone(),
+        );
+        let rpc_peer = JsonRpcPeer::spawn(
+            child_stdin,
+            child_stdout,
+            client.clone(),
+            ExitSignalSender::new(exit_signal_tx),
+            cancel.clone(),
+        );
+        client.connect(rpc_peer);
+
+        let result = tokio::time::timeout(MODEL_DISCOVERY_TIMEOUT, async {
+            client.initialize().await?;
+            Ok::<_, ExecutorError>(client.model_list().await?.data)
+        })
+        .await;
+
+        cancel.cancel();
+        let _ = child.kill().await;
+
+        result.unwrap_or_else(|_| {
+            Err(ExecutorError::Io(std::io::Error::other(
+                "Timed out listing Codex models",
+            )))
+        })
     }
 
     fn build_thread_start_params(&self, cwd: &Path) -> ThreadStartParams {
@@ -763,7 +913,81 @@ impl Codex {
 
 #[cfg(test)]
 mod tests {
-    use super::resolve_model;
+    use codex_app_server_protocol::Model;
+
+    use super::{models_from_catalog, resolve_model};
+
+    /// Trimmed capture of a real `model/list` response from
+    /// `npx -y @openai/codex@0.124.0 app-server`.
+    const MODEL_LIST_SAMPLE: &str = r#"[
+        {
+            "id": "gpt-5.4", "model": "gpt-5.4", "upgrade": null, "upgradeInfo": null,
+            "availabilityNux": null, "displayName": "gpt-5.4", "description": "Latest.",
+            "hidden": false,
+            "supportedReasoningEfforts": [
+                {"reasoningEffort": "low", "description": "l"},
+                {"reasoningEffort": "medium", "description": "m"},
+                {"reasoningEffort": "high", "description": "h"},
+                {"reasoningEffort": "xhigh", "description": "x"}
+            ],
+            "defaultReasoningEffort": "medium",
+            "inputModalities": ["text"], "supportsPersonality": true,
+            "additionalSpeedTiers": ["fast"], "isDefault": true
+        },
+        {
+            "id": "gpt-5.4-mini", "model": "gpt-5.4-mini", "upgrade": null, "upgradeInfo": null,
+            "availabilityNux": null, "displayName": "GPT-5.4-Mini", "description": "Smaller.",
+            "hidden": false,
+            "supportedReasoningEfforts": [
+                {"reasoningEffort": "low", "description": "l"},
+                {"reasoningEffort": "medium", "description": "m"}
+            ],
+            "defaultReasoningEffort": "medium",
+            "inputModalities": ["text"], "supportsPersonality": true,
+            "additionalSpeedTiers": [], "isDefault": false
+        }
+    ]"#;
+
+    #[test]
+    fn maps_model_list_catalog_to_selector_models() {
+        let catalog: Vec<Model> = serde_json::from_str(MODEL_LIST_SAMPLE).unwrap();
+        let models = models_from_catalog(&catalog);
+
+        let ids: Vec<&str> = models.iter().map(|m| m.id.as_str()).collect();
+        // The `fast` speed tier becomes a separate selectable id.
+        assert_eq!(ids, ["gpt-5.4", "gpt-5.4-fast", "gpt-5.4-mini"]);
+
+        // Reasoning options come from the model itself, not from a fixed list.
+        let mini = models.last().unwrap();
+        let mini_efforts: Vec<&str> = mini
+            .reasoning_options
+            .iter()
+            .map(|o| o.id.as_str())
+            .collect();
+        assert_eq!(mini_efforts, ["low", "medium"]);
+        assert!(
+            mini.reasoning_options
+                .iter()
+                .find(|o| o.id == "medium")
+                .unwrap()
+                .is_default
+        );
+    }
+
+    /// Live round-trip against the pinned CLI: spawns `codex app-server`,
+    /// initializes and asks for `model/list`. Metadata only — no thread is
+    /// started, so it costs no tokens. Ignored by default because it needs the
+    /// CLI, network and a logged-in account.
+    #[tokio::test]
+    #[ignore = "spawns the real codex app-server"]
+    async fn model_list_live_round_trip() {
+        let codex: super::Codex = serde_json::from_value(serde_json::json!({})).unwrap();
+        let catalog = codex.list_models(std::path::Path::new(".")).await.unwrap();
+        let models = models_from_catalog(&catalog);
+        println!("{:#?}", models);
+        assert!(!models.is_empty());
+        assert!(catalog.iter().any(|m| m.is_default));
+    }
 
     #[test]
     fn resolve_model_detects_fast_suffix() {
