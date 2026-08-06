@@ -27,6 +27,7 @@ Verified working 2026-08-05 (Windows 11, Node 26.7, pnpm 10.13, Rust nightly-202
 | `node .claude/skills/run-vibe-kanban/driver.mjs --smoke` | Start, verify, tear down, exit 0/1. Use in CI-ish checks. |
 | `node .claude/skills/run-vibe-kanban/driver.mjs` | Start, verify, print URL, stay up. Ctrl-C stops the whole tree. |
 | `node .claude/skills/run-vibe-kanban/driver.mjs --kill` | Sweep orphaned dev processes from earlier runs. |
+| `node .claude/skills/run-vibe-kanban/open.mjs` | Open `/workspaces/board` in a browser, starting the server only if it is not answering. What the desktop icon runs — see Autostart below. |
 
 Successful output ends with the line that matters:
 
@@ -38,6 +39,72 @@ smoke: frontend 200 | backend :3003 200 | proxied /api/health ok
 
 **Read the port off that line.** It is not stable: observed 3000/3002 and 3002/3003 across
 runs on the same machine.
+
+## Autostart + desktop icon
+
+Two human entry points, one install, one start path:
+
+```
+  logon (+1 min delay)                     double-click "Vibe Kanban"
+          │                                            │
+  Task Scheduler: VibeKanbanDev              Desktop\Vibe Kanban.lnk (vk.ico)
+          │                                            │
+  wscript //nologo autostart.vbs             wscript //nologo open.vbs
+          │            WScript.Shell.Run(..., 0, False) = no window, no wait
+          └──────────────┬─────────────────────────────┘
+                         ▼
+              node open.mjs [--no-open]
+                         │
+          read .dev-ports.json → GET /api/health
+                         │
+            ┌────────────┴────────────┐
+        answering                 dead / stale / no file
+            │                          │
+            │                 node driver.mjs (detached, stdio → vk-server.log)
+            │                    sweeps orphans → pnpm run dev → waits for
+            │                    both ports → smoke-tests the Vite proxy
+            │                          │
+            │                 poll .dev-ports.json again (the port changes)
+            └────────────┬─────────────┘
+                         ▼
+        start "" http://localhost:<port>/workspaces/board
+              (skipped entirely under --no-open)
+```
+
+The icon starts nothing when the server is already up (~120 ms to browser), and
+cold-starts it when it is not (~7 s warm, minutes on a cold cargo cache) — so it
+works with or without the autostart task. `--no-open` is the same path without
+the browser, which is all the logon task is.
+
+Install, and re-install after pulling changes to the driver or `open.mjs`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .claude/skills/run-vibe-kanban/install-autostart.ps1 -RepoRoot C:\lab\vibe-kanban
+```
+
+| Path | What |
+|---|---|
+| `%USERPROFILE%\.vibe-kanban\launcher\` | everything the installer generates (`-InstallDir` to move it) |
+| `…\launcher\autostart.vbs`, `open.vbs` | hidden launchers; the only place the repo path is baked in |
+| `…\launcher\open.mjs`, `driver.mjs` | **copies**, so a deleted worktree or a branch switch cannot break the shortcut. `VK_ROOT` / `--root` points them back at the repo |
+| `…\launcher\vk.ico` | 256px "VK" mark, BMP payload (see Gotchas) |
+| `…\launcher\autostart.log`, `open.log`, `vk-server.log` | logon run, icon run, dev server output |
+| `Desktop\Vibe Kanban.lnk` | `wscript.exe //nologo open.vbs` |
+| Task `VibeKanbanDev` | at logon, +1 min, no window, `IgnoreNew`, no execution time limit |
+
+Scheduled task over `shell:startup`: it survives startup-folder policies, can be
+delayed off the boot storm, and is inspectable (`Get-ScheduledTaskInfo VibeKanbanDev`
+→ `LastTaskResult 0`). Uninstall:
+
+```powershell
+Unregister-ScheduledTask -TaskName VibeKanbanDev -Confirm:$false
+Remove-Item "$([Environment]::GetFolderPath('Desktop'))\Vibe Kanban.lnk", "$env:USERPROFILE\.vibe-kanban\launcher" -Recurse
+```
+
+Verified end to end 2026-08-06: `Start-ScheduledTask` → ready on :3002 in 23 s with
+zero visible windows and alive after a 2-minute soak; click with the server up →
+board in 120 ms, same PIDs; `--kill` + deleted `.dev-ports.json` → click → server
+back on :3000 (ports drifted) and the board open 6.5 s later.
 
 ## Prerequisites
 
@@ -99,6 +166,18 @@ after the smoke check; check the log.
   running `pnpm run dev` from PowerShell/cmd dies instantly with `'export' não é
   reconhecido` / `is not recognized`. The driver sets `npm_config_script_shell` to Git
   Bash. Repo `.npmrc` does not set it.
+- **A bash script-shell is not enough — bash's own coreutils must be on PATH.**
+  pnpm's `.bin` shims are `/bin/sh` scripts that call `dirname`, `sed` and `uname`.
+  Launched from a Git Bash session those are inherited on PATH and everything
+  works; from PowerShell, cmd or Task Scheduler they are not, `basedir` comes out
+  empty, and the run dies on `Cannot find module 'C:\concurrently\dist\bin\concurrently.js'`
+  — a path that looks like a corrupt install and is really a missing `dirname`.
+  The driver now prepends `C:\Program Files\Git\usr\bin` to PATH itself.
+- **Vite dies if the dev script inherits a scheduled task's stdin.** An autostart
+  that ran `driver.mjs` straight from `cmd` under `wscript` came up, smoke-tested
+  green, then lost vite ~25 s later (`ELIFECYCLE Command failed with exit code 1`)
+  while the Rust server stayed orphaned. Both entry points now go through
+  `open.mjs`, which spawns the driver detached with `stdio: ['ignore', log, log]`.
 - **Ports are auto-allocated and drift upward.** `scripts/setup-dev-environment.js`
   probes for free ports and writes `.dev-ports.json`. If anything still holds 3000/3001
   it silently shifts to the next free pair. Never hardcode 3000/3001.
@@ -147,6 +226,8 @@ Errors actually hit on this machine, and what fixed them:
 | Tailwind `content option ... is missing or empty` warning | Harmless; styles render correctly. |
 | UI shows `An internal error occurred` on first prompt; log says `Container(Other(Workspace has no repositories configured))` | The workspace has no repo, so no worktree. Attach one: `POST /api/workspaces/{id}/repos` with `{"repo_id","target_branch"}` (a real branch name). |
 | `Branch '' does not exist in repository '<name>'` | `target_branch` was empty. Use the repo's `default_target_branch`, or the `is_current` branch from `GET /api/repos/{id}/branches`. |
+| Icon looks blank in Explorer, or `[System.Drawing.Icon]::ToBitmap()` throws `Intervalo solicitado ultrapassa o fim da matriz` | PNG-compressed `.ico` payload. Legal since Vista, but System.Drawing and some shell extensions cannot decode it — the installer writes a 32bpp BMP payload instead. |
+| Task runs, `LastTaskResult 0`, nothing starts | Read `launcher\autostart.log`: the task only launches `wscript`, so every real error lands there, not in Task Scheduler. |
 | `cargo install sqlx-cli` fails: `requires rustc 1.94.0 or newer` | Pin to the version matching the project's sqlx (0.8.6): `cargo install sqlx-cli@0.8.6 --no-default-features --features sqlite,rustls`. |
 
 `dev_assets/` is gitignored and disposable — it is re-seeded from `dev_assets_seed/` on

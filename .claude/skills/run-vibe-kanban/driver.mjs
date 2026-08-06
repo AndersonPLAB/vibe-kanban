@@ -13,8 +13,11 @@ import { spawn, execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
-const ROOT = path.resolve(import.meta.dirname, '../../..');
+// VK_ROOT lets a copy of this file live outside the repo (the installed autostart
+// launcher does exactly that, so a deleted worktree can't break it).
+const ROOT = path.resolve(process.env.VK_ROOT ?? path.resolve(import.meta.dirname, '../../..'));
 const BASH = 'C:\\Program Files\\Git\\usr\\bin\\bash.exe';
+const GIT_UNIX_BIN = path.dirname(BASH);
 const LLVM_BIN = 'C:\\Program Files\\LLVM\\bin';
 const MIGRATIONS = path.join(ROOT, 'crates/db/migrations');
 const READY_TIMEOUT_MS = Number(process.env.VK_READY_TIMEOUT_MS ?? 900_000);
@@ -78,14 +81,24 @@ function preflight() {
 }
 
 function start() {
+  const env = {
+    ...process.env,
+    npm_config_script_shell: BASH, // the dev script is bash: `export VAR=$(...)`
+    LIBCLANG_PATH: process.env.LIBCLANG_PATH || LLVM_BIN,
+  };
+
+  // A bash shell is not enough: pnpm's .bin shims call sed/dirname/uname, so Git's
+  // usr\bin must be on PATH too. Without it `dirname` fails silently, the shim's
+  // basedir comes out empty, and node dies on `Cannot find module
+  // 'C:\concurrently\dist\bin\concurrently.js'`. Inheriting PATH from a Git Bash
+  // session hides this; PowerShell, cmd and Task Scheduler do not.
+  const pathKey = Object.keys(env).find((k) => k.toUpperCase() === 'PATH') ?? 'PATH';
+  env[pathKey] = `${GIT_UNIX_BIN};${env[pathKey] ?? ''}`;
+
   const child = spawn('pnpm', ['run', 'dev'], {
     cwd: ROOT,
     shell: true, // pnpm is a .cmd shim on Windows
-    env: {
-      ...process.env,
-      npm_config_script_shell: BASH, // the dev script is bash: `export VAR=$(...)`
-      LIBCLANG_PATH: process.env.LIBCLANG_PATH || LLVM_BIN,
-    },
+    env,
   });
 
   const ports = {};
