@@ -140,8 +140,12 @@ export function isModelAvailable(
 }
 
 export function resolveDefaultReasoningId(
-  options: ReasoningOption[]
+  options: ReasoningOption[],
+  configuredDefault?: string | null
 ): string | null {
+  if (configuredDefault && options.some((o) => o.id === configuredDefault)) {
+    return configuredDefault;
+  }
   return (
     options.find((option) => option.is_default)?.id ?? options[0]?.id ?? null
   );

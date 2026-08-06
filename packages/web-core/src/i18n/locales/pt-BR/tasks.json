@@ -1,0 +1,537 @@
+{
+  "dropzone": {
+    "dropImagesHere": "Solte as imagens aqui",
+    "supportedFormats": "PNG, JPG, GIF, WebP e SVG suportados"
+  },
+  "gitPanel": {
+    "advanced": {
+      "placeholder": "ex.: acme Corp"
+    }
+  },
+  "loading": "Carregando tarefas...",
+  "actions": {
+    "addTask": "Adicionar tarefa"
+  },
+  "rebase": {
+    "common": {
+      "action": "Rebase",
+      "inProgress": "Fazendo rebase..."
+    },
+    "dialog": {
+      "title": "Rebase da tentativa",
+      "description": "Escolha uma nova branch base para fazer rebase deste workspace.",
+      "upstreamLabel": "Branch upstream",
+      "upstreamPlaceholder": "Selecionar a branch upstream",
+      "targetLabel": "Branch de destino",
+      "targetPlaceholder": "Selecionar a branch de destino",
+      "advanced": "Avançado"
+    }
+  },
+  "branches": {
+    "changeTarget": {
+      "dialog": {
+        "title": "Mudar a branch de destino",
+        "description": "Escolha uma nova branch de destino para o workspace.",
+        "placeholder": "Selecionar a branch de destino",
+        "action": "Mudar branch",
+        "inProgress": "Mudando..."
+      }
+    }
+  },
+  "repos": {
+    "selector": {
+      "placeholder": "Selecionar repositório",
+      "empty": "Nenhum repositório disponível"
+    }
+  },
+  "preview": {
+    "noServer": {
+      "title": "Nenhum dev server rodando",
+      "setupTitle": "Você precisa configurar um script de dev server para usar o preview",
+      "setupPrompt": "Para usar o preview ao vivo e o clique-para-editar, adicione um script de dev server neste projeto.",
+      "editDevScript": "Editar script do dev server",
+      "learnMore": "Saiba mais sobre testar aplicações"
+    },
+    "logs": {
+      "label": "Logs",
+      "viewFull": "Ver logs completos"
+    },
+    "toolbar": {
+      "refresh": "Atualizar preview",
+      "copyUrl": "Copiar URL",
+      "openInTab": "Abrir em nova aba",
+      "stopDevServer": "Parar dev server",
+      "resetUrl": "Voltar para a URL detectada",
+      "clearUrlOverride": "Limpar URL personalizada",
+      "desktopView": "Visualização desktop",
+      "mobileView": "Visualização mobile (390x844)",
+      "responsiveView": "Visualização responsiva (redimensionável)",
+      "startDevServer": "Iniciar dev server",
+      "submitUrl": "Enviar URL",
+      "toggleDevTools": "Alternar DevTools"
+    },
+    "loading": {
+      "startingServer": "Iniciando dev server...",
+      "waitingForServer": "Esperando o servidor...",
+      "loadingPreview": "Carregando preview...",
+      "manualUrlHint": "Nenhuma URL detectada ainda. Você pode digitar uma URL na barra acima."
+    },
+    "browser": {
+      "title": "Preview do dev server",
+      "devServerFallback": "Dev Server"
+    }
+  },
+  "diff": {
+    "filesChanged_one": "{{count}} arquivo alterado",
+    "filesChanged_other": "{{count}} arquivos alterados"
+  },
+  "processes": {
+    "noLogsAvailable": "Nenhum log disponível",
+    "selectAttempt": "Selecione uma tentativa para ver os processos de execução.",
+    "errorLoadingUpdates": "Não foi possível carregar as atualizações ao vivo dos processos.",
+    "reconnecting": "Reconectando...",
+    "loading": "Carregando processos de execução...",
+    "noProcesses": "Nenhum processo de execução para esta tentativa.",
+    "processId": "ID do processo: {{id}}",
+    "deleted": "Excluído",
+    "deletedTooltip": "Excluído por restauração: a timeline voltou para um checkpoint e as execuções posteriores foram removidas",
+    "agent": "Agente:",
+    "exit": "Saída: {{code}}",
+    "started": "Iniciado: {{date}}",
+    "completed": "Concluído: {{date}}",
+    "detailsTitle": "Detalhes do processo",
+    "backToList": "Voltar para a lista",
+    "loadingDetails": "Carregando detalhes do processo...",
+    "errorLoadingDetails": "Não foi possível carregar os detalhes do processo. Tente de novo.",
+    "copyLogs": "Copiar logs",
+    "logsCopied": "Copiado!"
+  },
+  "followUp": {
+    "queuedMessage": "Mensagem na fila - vai rodar quando a execução atual terminar"
+  },
+  "todoPopup": {
+    "title": "Tarefas",
+    "progress": "{{completed}}/{{total}} concluídas",
+    "noTasks": "Nenhuma tarefa"
+  },
+  "conversation": {
+    "executors": "Executors",
+    "saveAsDefault": "Salvar como padrão",
+    "you": "Você",
+    "thinking": "Pensando",
+    "todo": "To-do",
+    "todos": "To-dos",
+    "completed": "concluído",
+    "incomplete": "incompleto",
+    "pending": "pendente",
+    "inProgress": "em andamento",
+    "skipped": "pulado",
+    "error": "Erro",
+    "retry": "Tentar de novo",
+    "showMore": "Ver mais",
+    "showLess": "Ver menos",
+    "actions": {
+      "cancel": "Cancelar",
+      "submitFeedback": "Enviar feedback",
+      "stop": "Parar",
+      "stopping": "Parando",
+      "loading": "Carregando",
+      "send": "Enviar",
+      "sending": "Enviando",
+      "queue": "Enfileirar",
+      "cancelQueue": "Cancelar fila",
+      "requestChanges": "Pedir alterações",
+      "approve": "Aprovar",
+      "clearReviewComments": "Limpar comentários de revisão",
+      "edit": "Editar mensagem",
+      "scrollToPreviousMessage": "Ir para a mensagem anterior",
+      "reset": "Resetar",
+      "resetTooltip": "Resetar para este ponto"
+    },
+    "approval": {
+      "conflictWarning": "Arquivos em conflito precisam de resolução manual",
+      "conflicts_one": "{{count}} conflito",
+      "conflicts_other": "{{count}} conflitos"
+    },
+    "sessions": {
+      "newSession": "Nova sessão",
+      "latest": "Mais recente",
+      "previous": "Anteriores",
+      "label": "Sessões",
+      "noPreviousSessions": "Nenhuma sessão anterior",
+      "rename": "Renomear",
+      "renameTitle": "Renomear sessão",
+      "renameDescription": "Digite um novo nome para esta sessão.",
+      "renamePlaceholder": "Nome da sessão",
+      "renaming": "Renomeando..."
+    },
+    "reviewComments": {
+      "count_one": "{{count}} comentário de revisão será incluído",
+      "count_other": "{{count}} comentários de revisão serão incluídos"
+    },
+    "workspace": {
+      "create": "Criar",
+      "creating": "Criando..."
+    },
+    "fileEntry": {
+      "created": "Criado",
+      "modified": "Modificado",
+      "deleted": "Excluído",
+      "renamed": "Renomeado"
+    },
+    "script": {
+      "running": "Rodando...",
+      "exitCode": "Código de saída: {{code}}",
+      "completedSuccessfully": "Concluído com sucesso",
+      "clickToViewLogs": "Clique para ver os logs"
+    },
+    "scriptPlaceholder": {
+      "setupTitle": "Script de setup",
+      "setupDescription": "Nenhum script de setup configurado. Scripts de setup rodam antes do agente de código começar.",
+      "cleanupTitle": "Script de cleanup",
+      "cleanupDescription": "Nenhum script de cleanup configurado. Scripts de cleanup rodam depois que o agente de código termina.",
+      "configure": "Configurar"
+    },
+    "updatedTodos": "To-dos atualizados",
+    "viewInChangesPanel": "Ver no painel de alterações",
+    "unableToRenderDiff": "Não foi possível renderizar o diff."
+  },
+  "attempt": {
+    "actions": {
+      "startDevServer": "Iniciar dev server"
+    }
+  },
+  "git": {
+    "labels": {
+      "taskBranch": "Branch da tarefa"
+    },
+    "branch": {
+      "current": "atual"
+    },
+    "forcePushDialog": {
+      "title": "Force push necessário",
+      "description": "A branch remota{{branchLabel}} divergiu da sua branch local. O push normal foi rejeitado.",
+      "warning": "O force push vai sobrescrever as alterações remotas com as suas alterações locais. Não dá para desfazer.",
+      "note": "Só continue se tiver certeza de que quer substituir o histórico da branch remota.",
+      "error": "Não foi possível fazer o force push"
+    },
+    "status": {
+      "commits_one": "commit",
+      "commits_other": "commits",
+      "conflicts": "Conflitos",
+      "upToDate": "Atualizado",
+      "ahead": "à frente",
+      "behind": "atrás"
+    },
+    "states": {
+      "merged": "Merge feito!",
+      "merging": "Fazendo merge...",
+      "merge": "Merge",
+      "rebasing": "Fazendo rebase...",
+      "rebase": "Rebase",
+      "pushed": "Push feito!",
+      "pushing": "Fazendo push...",
+      "push": "Push",
+      "pushFailed": "Falhou",
+      "forcePush": "Force Push",
+      "forcePushing": "Fazendo force push...",
+      "creating": "Criando...",
+      "createPr": "Criar PR"
+    },
+    "errors": {
+      "changeTargetBranch": "Não foi possível mudar a branch de destino",
+      "pushChanges": "Não foi possível fazer push das alterações",
+      "mergeChanges": "Não foi possível fazer merge das alterações",
+      "rebaseBranch": "Não foi possível fazer rebase da branch",
+      "branchStatusUnavailable": "Não foi possível buscar o status da branch. Você ainda pode mudar a branch de destino."
+    },
+    "pr": {
+      "open": "Abrir PR #{{number}}",
+      "number": "PR #{{number}}",
+      "merged": "PR #{{prNumber}} mergeada"
+    },
+    "actions": {
+      "title": "Ações do Git",
+      "changeTarget": "Mudar destino",
+      "prMerged": "A PR #{{number}} já foi mergeada",
+      "loginRequired": {
+        "title": "Entre para gerenciar as ações do Git",
+        "description": "Entre no Vibe Kanban para fazer push de branches, merge de alterações ou abrir PRs para esta tarefa.",
+        "action": "Entrar"
+      }
+    },
+    "mergeDialog": {
+      "title": "Fazer merge",
+      "description": "Isso vai fazer merge das suas alterações na branch de destino. Quer mesmo continuar?"
+    },
+    "createRepo": {
+      "dialog": {
+        "title": "Criar novo repositório",
+        "description": "Inicializar um novo repositório git"
+      },
+      "form": {
+        "nameLabel": "Nome",
+        "namePlaceholder": "meu-projeto",
+        "locationLabel": "Local",
+        "locationPlaceholder": "Diretório atual"
+      },
+      "browseDialog": {
+        "title": "Selecionar o diretório pai",
+        "description": "Escolha onde criar o novo repositório"
+      },
+      "errors": {
+        "nameRequired": "O nome do repositório é obrigatório",
+        "createFailed": "Não foi possível criar o repositório"
+      },
+      "buttons": {
+        "createRepository": "Criar repositório"
+      },
+      "states": {
+        "creating": "Criando..."
+      }
+    }
+  },
+  "repoBranchSelector": {
+    "label": "Branch base"
+  },
+  "viewProcessesDialog": {
+    "title": "Processos de execução"
+  },
+  "editBranchName": {
+    "dialog": {
+      "title": "Editar nome da branch",
+      "description": "Digite um novo nome para a branch. Não dá para renomear se houver uma PR aberta.",
+      "branchNameLabel": "Nome da branch",
+      "placeholder": "ex.: feature/minha-branch",
+      "renaming": "Renomeando...",
+      "action": "Renomear branch"
+    }
+  },
+  "startReviewDialog": {
+    "title": "Iniciar revisão",
+    "description": "Peça para o agente de código revisar suas alterações e dar feedback.",
+    "additionalInstructions": "Instruções adicionais (opcional)",
+    "reviewComments": "Comentários de revisão ({{count}})",
+    "includeGitContext": "Incluir o contexto do Git",
+    "includeGitContextDescription": "Explica para o agente como ver todas as alterações feitas nesta branch",
+    "newSession": "Nova sessão",
+    "sessionName": "Revisão"
+  },
+  "actionsMenu": {
+    "startReview": "Iniciar revisão",
+    "startingReview": "Iniciando revisão..."
+  },
+  "resolveConflicts": {
+    "dialog": {
+      "title": "Resolver conflitos",
+      "description": "Detectamos conflitos. Escolha como o agente deve resolver.",
+      "newSession": "Iniciar uma nova sessão",
+      "resolve": "Resolver conflitos",
+      "resolving": "Iniciando...",
+      "filesWithConflicts_one": "{{count}} arquivo com conflitos",
+      "filesWithConflicts_other": "{{count}} arquivos com conflitos",
+      "andMore": "...e mais {{count}}",
+      "sessionName": "Resolver conflitos"
+    }
+  },
+  "rebaseInProgress": {
+    "dialog": {
+      "title": "Rebase em andamento",
+      "description": "Tem um rebase em cima de {{targetBranch}} em andamento, sem conflitos. Escolha como seguir.",
+      "hint": "Você pode continuar o rebase para finalizar, ou abortar para voltar ao estado anterior.",
+      "continue": "Continuar rebase",
+      "continuing": "Continuando...",
+      "abort": "Abortar rebase",
+      "aborting": "Abortando...",
+      "continueError": "Não foi possível continuar o rebase. Pode haver conflitos não resolvidos.",
+      "abortError": "Não foi possível abortar o rebase. Tente de novo."
+    }
+  },
+  "createPrDialog": {
+    "title": "Criar pull request",
+    "description": "Crie uma PR para este workspace.",
+    "titleLabel": "Título",
+    "titlePlaceholder": "Título da PR",
+    "descriptionLabel": "Descrição (opcional)",
+    "descriptionPlaceholder": "Descrição da PR",
+    "baseBranchLabel": "Branch base",
+    "loadingBranches": "Carregando branches...",
+    "selectBaseBranch": "Selecionar a branch base",
+    "draftLabel": "Criar como draft",
+    "autoGenerateLabel": "Gerar a descrição da PR com IA",
+    "creating": "Criando...",
+    "createButton": "Criar PR",
+    "errors": {
+      "failedToCreate": "Não foi possível criar a PR",
+      "gitCliNotLoggedIn": "O Git não está autenticado. Rode \"gh auth login\" (ou configure as credenciais do Git) e tente de novo.",
+      "gitCliNotInstalled": "O Git CLI não está instalado. Instale o Git para criar uma PR.",
+      "targetBranchNotFound": "A branch de destino '{{branch}}' não existe no remoto. Garanta que a branch existe antes de criar a PR."
+    }
+  },
+  "prComments": {
+    "dialog": {
+      "title": "Selecionar comentários da PR",
+      "noComments": "Nenhum comentário nesta PR",
+      "selectAll": "Selecionar todos",
+      "deselectAll": "Desmarcar todos",
+      "add": "Adicionar",
+      "selectedCount": "{{selected}} de {{total}} selecionados"
+    },
+    "card": {
+      "review": "Revisão",
+      "tooltip": "Clique para ver, dois cliques para editar"
+    }
+  },
+  "taskFormDialog": {
+    "createTitle": "Criar nova tarefa",
+    "editTitle": "Editar tarefa",
+    "titlePlaceholder": "Título da tarefa...",
+    "descriptionPlaceholder": "Adicione mais detalhes (opcional). Digite @ para buscar arquivos.",
+    "statusLabel": "Status",
+    "statusOptions": {
+      "todo": "A fazer",
+      "inprogress": "Em andamento",
+      "inreview": "Em revisão",
+      "done": "Concluído",
+      "cancelled": "Cancelado"
+    },
+    "startLabel": "Iniciar",
+    "attachFile": "Anexar arquivo",
+    "dropImagesHere": "Solte as imagens aqui",
+    "updating": "Atualizando...",
+    "updateTask": "Atualizar tarefa",
+    "starting": "Iniciando...",
+    "creating": "Criando...",
+    "create": "Criar",
+    "discardDialog": {
+      "title": "Descartar alterações não salvas?",
+      "description": "Você tem alterações não salvas. Quer mesmo descartar?",
+      "continueEditing": "Continuar editando",
+      "discardChanges": "Descartar alterações"
+    }
+  },
+  "restoreLogsDialog": {
+    "title": "Confirmar nova tentativa",
+    "titleReset": "Confirmar reset",
+    "historyChange": {
+      "title": "Mudança no histórico",
+      "willDelete": "Vai apagar este processo",
+      "willDeleteProcesses_one": "Vai apagar {{count}} processo",
+      "willDeleteProcesses_other": "Vai apagar {{count}} processos",
+      "andLaterProcesses_one": "e {{count}} processo posterior",
+      "andLaterProcesses_other": "e {{count}} processos posteriores",
+      "fromHistory": "do histórico.",
+      "codingAgentRuns_one": "{{count}} execução do agente de código",
+      "codingAgentRuns_other": "{{count}} execuções do agente de código",
+      "scriptProcesses_one": "{{count}} processo de script",
+      "scriptProcesses_other": "{{count}} processos de script",
+      "setupCleanupBreakdown": "({{setup}} de setup, {{cleanup}} de cleanup)",
+      "permanentWarning": "Isso altera o histórico permanentemente e não dá para desfazer."
+    },
+    "uncommittedChanges": {
+      "title": "Alterações não commitadas detectadas",
+      "description_one": "Você tem {{count}} alteração não commitada",
+      "description_other": "Você tem {{count}} alterações não commitadas",
+      "andUntracked_one": " e {{count}} arquivo não rastreado",
+      "andUntracked_other": " e {{count}} arquivos não rastreados",
+      "acknowledgeLabel": "Entendi que essas alterações podem ser afetadas"
+    },
+    "resetWorktree": {
+      "title": "Resetar o worktree",
+      "enabled": "Ativado",
+      "disabled": "Desativado",
+      "disabledUncommitted": "Desativado (alterações não commitadas detectadas)",
+      "restoreDescription": "Seu worktree vai voltar para este commit.",
+      "discardChanges_one": "Descarta {{count}} alteração não commitada.",
+      "discardChanges_other": "Descarta {{count}} alterações não commitadas.",
+      "untrackedPresent_one": "{{count}} arquivo não rastreado presente (não é afetado pelo reset).",
+      "untrackedPresent_other": "{{count}} arquivos não rastreados presentes (não são afetados pelo reset).",
+      "forceReset": "Forçar reset (descarta alterações não commitadas)",
+      "uncommittedWillDiscard": "As alterações não commitadas serão descartadas.",
+      "uncommittedPresentHint": "Há alterações não commitadas. Ative o Forçar reset ou faça commit/stash para continuar."
+    },
+    "buttons": {
+      "retry": "Tentar de novo",
+      "reset": "Resetar"
+    }
+  },
+  "scriptFixer": {
+    "setupScriptTitle": "Corrigir script de setup",
+    "cleanupScriptTitle": "Corrigir script de cleanup",
+    "archiveScriptTitle": "Corrigir script de archive",
+    "devServerTitle": "Corrigir script do dev server",
+    "scriptLabel": "Script (editar)",
+    "logsLabel": "Logs da última execução",
+    "saveButton": "Salvar",
+    "saveAndTestButton": "Salvar e testar",
+    "noLogs": "Nenhum log de execução disponível",
+    "selectRepo": "Repositório",
+    "fixScript": "Corrigir script",
+    "statusRunning": "Rodando...",
+    "statusSuccess": "Concluído com sucesso",
+    "statusFailed": "Falhou com código de saída {{exitCode}}",
+    "statusKilled": "O processo foi encerrado"
+  },
+  "shareDialog": {
+    "loginRequired": {
+      "title": "Precisa entrar",
+      "description": "Entre para usar esse recurso.",
+      "action": "Entrar"
+    }
+  },
+  "createWorkspaceFromPr": {
+    "title": "Criar workspace a partir de uma PR",
+    "description": "Escolha uma PR aberta para criar o workspace. Uma tarefa é criada automaticamente com o título da PR.",
+    "repositoryLabel": "Repositório",
+    "remoteLabel": "Remote",
+    "pullRequestLabel": "Pull Request",
+    "loadingRepositories": "Carregando repositórios...",
+    "loadingRemotes": "Carregando remotes...",
+    "noRepositoriesFound": "Nenhum repositório encontrado",
+    "loadingPullRequests": "Carregando pull requests...",
+    "selectRepositoryFirst": "Selecione um repositório primeiro",
+    "noPullRequestsFound": "Nenhuma PR aberta encontrada",
+    "runSetupScript": "Rodar o script de setup",
+    "creating": "Criando...",
+    "createWorkspace": "Criar workspace",
+    "selectRepository": "Selecionar um repositório",
+    "selectRemote": "Selecionar um remote",
+    "selectPullRequest": "Selecionar uma PR",
+    "searchPrsPlaceholder": "Buscar PRs por número ou título...",
+    "noMatchingPrs": "Nenhuma PR encontrada",
+    "default": "padrão",
+    "openPrInBrowser": "Abrir a PR no navegador",
+    "errors": {
+      "cliNotInstalled": "O CLI do {{provider}} não está instalado",
+      "unsupportedProvider": "Provedor Git não suportado",
+      "failedToLoadPrs": "Não foi possível carregar as pull requests",
+      "prNotFound": "Pull request não encontrada",
+      "failedToCreateWorkspace": "Não foi possível criar o workspace"
+    }
+  },
+  "linkPrToIssue": {
+    "title": "Vincular pull request",
+    "description": "Vincule uma PR existente a esta issue.",
+    "urlTab": "Por URL",
+    "browseTab": "Procurar",
+    "urlLabel": "URL da pull request",
+    "urlPlaceholder": "https://github.com/owner/repo/pull/123",
+    "repositoryLabel": "Repositório",
+    "remoteLabel": "Remote",
+    "pullRequestLabel": "Pull Request",
+    "loadingPrInfo": "Carregando dados da PR...",
+    "invalidUrl": "Não foi possível carregar os dados da PR com essa URL",
+    "baseBranch": "Base:",
+    "linkPr": "Vincular PR",
+    "linking": "Vinculando...",
+    "status": {
+      "open": "Aberta",
+      "merged": "Mergeada",
+      "closed": "Fechada",
+      "unknown": "Desconhecido"
+    },
+    "errors": {
+      "failed": "Não foi possível vincular a PR. Tente de novo."
+    }
+  }
+}

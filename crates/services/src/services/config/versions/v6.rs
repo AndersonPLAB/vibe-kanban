@@ -21,6 +21,7 @@ pub enum UiLanguage {
     Ko,     // Force Korean
     ZhHans, // Force Simplified Chinese
     ZhHant, // Force Traditional Chinese
+    PtBr,   // Force Brazilian Portuguese
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]

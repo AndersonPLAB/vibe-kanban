@@ -85,8 +85,27 @@ impl ReasoningOption {
         Self::from_names_with_labels(names.into_iter().map(|n| (n.into(), None)))
     }
 
+    /// Same as [`Self::from_names`] but marks `default_id` as the default option
+    /// instead of always defaulting to `high`.
+    pub fn from_names_with_default(
+        names: impl IntoIterator<Item = impl Into<String>>,
+        default_id: &str,
+    ) -> Vec<ReasoningOption> {
+        Self::from_names_with_labels_and_default(
+            names.into_iter().map(|n| (n.into(), None)),
+            default_id,
+        )
+    }
+
     pub fn from_names_with_labels(
         pairs: impl IntoIterator<Item = (String, Option<String>)>,
+    ) -> Vec<ReasoningOption> {
+        Self::from_names_with_labels_and_default(pairs, "high")
+    }
+
+    fn from_names_with_labels_and_default(
+        pairs: impl IntoIterator<Item = (String, Option<String>)>,
+        default_id: &str,
     ) -> Vec<ReasoningOption> {
         let rank_key = |id: &str| match id.to_lowercase().as_str() {
             "none" => Some(0),
@@ -95,6 +114,7 @@ impl ReasoningOption {
             "high" => Some(3),
             "xhigh" => Some(4),
             "max" => Some(5),
+            "ultra" => Some(6),
             _ => None,
         };
 
@@ -102,7 +122,7 @@ impl ReasoningOption {
             .into_iter()
             .map(|(id, label)| {
                 let label = label.unwrap_or_else(|| reasoning_label(&id));
-                let is_default = id.eq_ignore_ascii_case("high");
+                let is_default = id.eq_ignore_ascii_case(default_id);
                 ReasoningOption {
                     id,
                     label,

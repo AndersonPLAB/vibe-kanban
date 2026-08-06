@@ -542,6 +542,10 @@
       "tooltip": "Sign in to view projects",
       "title": "Kanban Boards",
       "description": "Sign in to organise your coding agents with kanban boards."
+    },
+    "cliFreshness": {
+      "title": "Executor CLIs outdated",
+      "tooltip": "Executor CLIs outdated — click for details"
     }
   },
   "askQuestion": {

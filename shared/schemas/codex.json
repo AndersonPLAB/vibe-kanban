@@ -52,17 +52,30 @@
       ]
     },
     "model_reasoning_effort": {
-      "description": "Reasoning effort for the underlying model",
-      "type": [
-        "string",
-        "null"
-      ],
-      "enum": [
-        "low",
-        "medium",
-        "high",
-        "xhigh",
-        null
+      "anyOf": [
+        {
+          "description": "Reasoning effort for the underlying model",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "xhigh",
+                "max"
+              ]
+            },
+            {
+              "description": "Maximum reasoning with automatic task delegation. Only the GPT-5.6\nfamily advertises it; `model/list` is what decides per model.",
+              "type": "string",
+              "const": "ultra"
+            }
+          ]
+        },
+        {
+          "type": "null"
+        }
       ]
     },
     "model_reasoning_summary": {

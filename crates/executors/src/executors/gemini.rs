@@ -201,15 +201,16 @@ impl StandardCodingAgentExecutor for Gemini {
         _workdir: Option<&std::path::Path>,
         _repo_path: Option<&std::path::Path>,
     ) -> Result<futures::stream::BoxStream<'static, json_patch::Patch>, ExecutorError> {
+        // Static list: the pinned CLI has no model-listing command, and the ACP
+        // `session/new` payload that would carry `availableModels` only exists
+        // from 0.36.0 on. Upgrading would not help — `session/new` is rejected
+        // server-side on this account in both 0.29.3 and 0.36.0 ("no longer
+        // supported for Gemini Code Assist for individuals"), so the pin stayed
+        // at 0.29.3 and this list stays static.
+        // zona de envelhecimento — revisar no merge mensal
         let options = ExecutorDiscoveredOptions {
             model_selector: ModelSelectorConfig {
                 models: vec![
-                    ModelInfo {
-                        id: "gemini-3.1-pro-preview".to_string(),
-                        name: "Gemini 3.1 Pro Preview".to_string(),
-                        provider_id: None,
-                        reasoning_options: vec![],
-                    },
                     ModelInfo {
                         id: "gemini-3-pro-preview".to_string(),
                         name: "Gemini 3 Pro".to_string(),

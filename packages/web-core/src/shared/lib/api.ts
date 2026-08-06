@@ -37,6 +37,7 @@ import {
   CheckEditorAvailabilityResponse,
   AvailabilityInfo,
   BaseCodingAgent,
+  CliFreshnessReport,
   ExecutorConfig,
   DraftFollowUpData,
   AgentPresetOptionsQuery,
@@ -1033,6 +1034,10 @@ export const configApi = {
       `/api/agents/check-availability?executor=${encodeURIComponent(agent)}`
     );
     return handleApiResponse<AvailabilityInfo>(response);
+  },
+  getCliFreshness: async (): Promise<CliFreshnessReport> => {
+    const response = await makeRequest('/api/cli-freshness');
+    return handleApiResponse<CliFreshnessReport>(response);
   },
 };
 

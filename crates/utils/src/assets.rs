@@ -52,6 +52,10 @@ pub fn relay_host_credentials_path() -> std::path::PathBuf {
     asset_dir().join("relay_host_credentials.json")
 }
 
+pub fn cli_freshness_path() -> std::path::PathBuf {
+    asset_dir().join("cli_freshness.json")
+}
+
 #[derive(RustEmbed)]
 #[folder = "../../assets/sounds"]
 pub struct SoundAssets;

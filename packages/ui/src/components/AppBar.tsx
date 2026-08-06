@@ -13,8 +13,10 @@ import {
   KanbanIcon,
   SpinnerIcon,
   StarIcon,
+  WarningIcon,
   type Icon,
 } from '@phosphor-icons/react';
+import type { CliFreshnessEntry } from 'shared/types';
 import { cn } from '../lib/cn';
 import { AppBarSocialLink } from './AppBarSocialLink';
 import {
@@ -71,6 +73,7 @@ interface AppBarProps {
   appVersion?: string | null;
   updateVersion?: string | null;
   onUpdateClick?: () => void;
+  cliFreshnessEntries?: CliFreshnessEntry[];
   githubIconPath: string;
   discordIconPath: string;
 }
@@ -223,10 +226,12 @@ export function AppBar({
   appVersion,
   updateVersion,
   onUpdateClick,
+  cliFreshnessEntries = [],
   githubIconPath,
   discordIconPath,
 }: AppBarProps) {
   const { t } = useTranslation('common');
+  const staleCliEntries = cliFreshnessEntries.filter((entry) => entry.is_stale);
   const sections: AppBarSection[] = [];
 
   if (showWorkspacesButton) {
@@ -558,6 +563,37 @@ export function AppBar({
             onlineCount != null && (onlineCount > 999 ? '999+' : onlineCount)
           }
         />
+        {staleCliEntries.length > 0 && (
+          <Popover>
+            <Tooltip content={t('appBar.cliFreshness.tooltip')} side="right">
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center justify-center w-10 h-10 rounded-lg text-warning hover:bg-warning/10 cursor-pointer transition-colors"
+                  aria-label={t('appBar.cliFreshness.title')}
+                >
+                  <WarningIcon className="size-icon-base" weight="fill" />
+                </button>
+              </PopoverTrigger>
+            </Tooltip>
+            <PopoverContent side="right" sideOffset={8} className="w-72">
+              <p className="text-sm font-medium text-high">
+                {t('appBar.cliFreshness.title')}
+              </p>
+              <ul className="mt-base space-y-2 max-h-64 overflow-y-auto">
+                {staleCliEntries.map((entry) => (
+                  <li key={entry.package} className="text-xs">
+                    <p className="text-normal font-ibm-plex-mono">
+                      {entry.package}: {entry.pinned_version} →{' '}
+                      {entry.latest_version}
+                    </p>
+                    <p className="text-low">{entry.pin_hint}</p>
+                  </li>
+                ))}
+              </ul>
+            </PopoverContent>
+          </Popover>
+        )}
         {updateVersion ? (
           <Tooltip content={`Update to v${updateVersion}`} side="right">
             <button

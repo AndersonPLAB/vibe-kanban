@@ -76,7 +76,17 @@
           "helper": "Choose the default agent configuration to use when creating a workspace."
         },
         "variant": "DEFAULT",
-        "defaultLabel": "Default"
+        "defaultLabel": "Default",
+        "reasoningEffort": {
+          "label": "Default Reasoning Effort",
+          "helper": "Preselected on every model that supports effort. Models without it are unaffected.",
+          "modelDefault": "Model default",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High",
+          "xhigh": "Extra High",
+          "max": "Max"
+        }
       },
       "editor": {
         "title": "Editor",

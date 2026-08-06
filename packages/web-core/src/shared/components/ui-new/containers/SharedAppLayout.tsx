@@ -26,6 +26,7 @@ import { useDiscordOnlineCount } from '@/shared/hooks/useDiscordOnlineCount';
 import { useGitHubStars } from '@/shared/hooks/useGitHubStars';
 import { useUserSystem } from '@/shared/hooks/useUserSystem';
 import { useAppUpdateStore } from '@/shared/stores/useAppUpdateStore';
+import { useCliFreshness } from '@/shared/hooks/useCliFreshness';
 import { useAppNavigation } from '@/shared/hooks/useAppNavigation';
 import { useCurrentAppDestination } from '@/shared/hooks/useCurrentAppDestination';
 import {
@@ -68,6 +69,7 @@ export function SharedAppLayout() {
   const { appVersion } = useUserSystem();
   const updateVersion = useAppUpdateStore((s) => s.updateVersion);
   const restartForUpdate = useAppUpdateStore((s) => s.restart);
+  const { data: cliFreshness } = useCliFreshness();
   const { data: onlineCount } = useDiscordOnlineCount();
   const { data: starCount } = useGitHubStars();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -365,6 +367,7 @@ export function SharedAppLayout() {
               appVersion={appVersion}
               updateVersion={updateVersion}
               onUpdateClick={restartForUpdate ?? undefined}
+              cliFreshnessEntries={cliFreshness?.entries}
               githubIconPath={siGithub.path}
               discordIconPath={siDiscord.path}
             />

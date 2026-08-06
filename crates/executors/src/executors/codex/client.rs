@@ -16,12 +16,12 @@ use codex_app_server_protocol::{
     GetAccountParams, GetAccountRateLimitsResponse, GetAccountResponse, InitializeCapabilities,
     InitializeParams, InitializeResponse, ItemCompletedNotification, JSONRPCError,
     JSONRPCNotification, JSONRPCRequest, JSONRPCResponse, ListMcpServerStatusParams,
-    ListMcpServerStatusResponse, McpServerStatusDetail, RequestId, ReviewStartParams,
-    ReviewStartResponse, ReviewTarget, ServerRequest, ThreadCompactStartParams,
-    ThreadCompactStartResponse, ThreadForkParams, ThreadForkResponse, ThreadItem, ThreadReadParams,
-    ThreadReadResponse, ThreadStartParams, ThreadStartResponse, ToolRequestUserInputAnswer,
-    ToolRequestUserInputQuestion, ToolRequestUserInputResponse, TurnCompletedNotification,
-    TurnStartParams, TurnStartResponse, TurnStatus, UserInput,
+    ListMcpServerStatusResponse, McpServerStatusDetail, ModelListParams, ModelListResponse,
+    RequestId, ReviewStartParams, ReviewStartResponse, ReviewTarget, ServerRequest,
+    ThreadCompactStartParams, ThreadCompactStartResponse, ThreadForkParams, ThreadForkResponse,
+    ThreadItem, ThreadReadParams, ThreadReadResponse, ThreadStartParams, ThreadStartResponse,
+    ToolRequestUserInputAnswer, ToolRequestUserInputQuestion, ToolRequestUserInputResponse,
+    TurnCompletedNotification, TurnStartParams, TurnStartResponse, TurnStatus, UserInput,
 };
 use codex_protocol::config_types::{CollaborationMode, ModeKind, Settings};
 use futures::TryFutureExt;
@@ -230,9 +230,22 @@ impl AppServerClient {
                 cursor,
                 limit: None,
                 detail: Some(McpServerStatusDetail::ToolsAndAuthOnly),
+                // Discovery-time listing: not scoped to a thread.
+                thread_id: None,
             },
         };
         self.send_request(request, "mcpServerStatus/list").await
+    }
+
+    pub async fn model_list(&self) -> Result<ModelListResponse, ExecutorError> {
+        let request = ClientRequest::ModelList {
+            request_id: self.next_request_id(),
+            params: ModelListParams {
+                include_hidden: Some(false),
+                ..Default::default()
+            },
+        };
+        self.send_request(request, "model/list").await
     }
 
     pub async fn thread_compact_start(
@@ -431,7 +444,9 @@ impl AppServerClient {
             }
             ServerRequest::ChatgptAuthTokensRefresh { .. }
             | ServerRequest::McpServerElicitationRequest { .. }
-            | ServerRequest::PermissionsRequestApproval { .. } => {
+            | ServerRequest::PermissionsRequestApproval { .. }
+            | ServerRequest::AttestationGenerate { .. }
+            | ServerRequest::CurrentTimeRead { .. } => {
                 tracing::warn!("received unhandled v2 server request: {:?}", request);
                 let response = JSONRPCResponse {
                     id: request.id().clone(),
@@ -970,6 +985,7 @@ fn request_id(request: &ClientRequest) -> RequestId {
         | ClientRequest::GetAccount { request_id, .. }
         | ClientRequest::ReviewStart { request_id, .. }
         | ClientRequest::McpServerStatusList { request_id, .. }
+        | ClientRequest::ModelList { request_id, .. }
         | ClientRequest::ThreadCompactStart { request_id, .. }
         | ClientRequest::ThreadRead { request_id, .. }
         | ClientRequest::ConfigRead { request_id, .. }
